@@ -2,26 +2,29 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/khorihutama/hsi-go-api/internal/api/middleware"
 	"github.com/khorihutama/hsi-go-api/internal/common/dto"
 	"github.com/khorihutama/hsi-go-api/internal/common/errs"
+	"github.com/khorihutama/hsi-go-api/internal/infra/ratelimit"
 	bookingdto "github.com/khorihutama/hsi-go-api/internal/module/booking/model/dto"
 	"github.com/khorihutama/hsi-go-api/internal/module/booking/service"
 )
 
 type Handler struct {
 	service *service.Service
+	limiter *ratelimit.Limiter
 }
 
-func New(svc *service.Service) *Handler {
-	return &Handler{service: svc}
+func New(svc *service.Service, limiter *ratelimit.Limiter) *Handler {
+	return &Handler{service: svc, limiter: limiter}
 }
 
 func (h *Handler) RegisterPath(group *gin.RouterGroup, auth gin.HandlerFunc) {
-	group.POST("/reservations/lock", auth, h.lock)
+	group.POST("/reservations/lock", auth, middleware.RateLimitUser(h.limiter, "booking:lock", 10, time.Minute), h.lock)
 	group.GET("/reservations/:id", auth, h.get)
 	group.POST("/reservations/:id/cancel", auth, h.cancel)
 	group.POST("/promos/validate", auth, h.validatePromo)

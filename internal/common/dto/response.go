@@ -53,6 +53,7 @@ func Fail(c *gin.Context, err error) {
 	if !ok {
 		appErr = errs.Internal(err)
 	}
+	c.Set("error_code", appErr.Code)
 	c.AbortWithStatusJSON(appErr.Status, ErrorResponse{
 		Error: ErrorBody{
 			Code:    appErr.Code,

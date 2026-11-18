@@ -31,6 +31,7 @@ type Config struct {
 	StorageDriver     string
 	UploadsDir        string
 	DocumentEncKey    []byte
+	MaxBodyBytes      int64
 	SeedEnabled       bool
 
 	AccessTokenTTL        time.Duration
@@ -69,6 +70,7 @@ func Load() (*Config, error) {
 		WAGroupURL:            os.Getenv("WA_GROUP_URL"),
 		StorageDriver:         getenv("STORAGE_DRIVER", "local"),
 		UploadsDir:            getenv("UPLOADS_DIR", "./uploads"),
+		MaxBodyBytes:          int64(envInt("MAX_REQUEST_BODY_BYTES", 8*1024*1024)),
 		SeedEnabled:           strings.EqualFold(getenv("SEED_ENABLED", "false"), "true"),
 		AccessTokenTTL:        15 * time.Minute,
 		RefreshTokenTTL:       30 * 24 * time.Hour,
@@ -117,7 +119,24 @@ func Load() (*Config, error) {
 	if cfg.PaymentExpiryInterval <= 0 {
 		return nil, fmt.Errorf("PAYMENT_EXPIRY_INTERVAL_SECONDS must be positive")
 	}
+	if cfg.MaxBodyBytes <= 0 {
+		return nil, fmt.Errorf("MAX_REQUEST_BODY_BYTES must be positive")
+	}
+	if cfg.IsProduction() {
+		if len(cfg.CORSOrigins) == 0 || contains(cfg.CORSOrigins, "*") {
+			return nil, fmt.Errorf("CORS_ORIGINS must be an explicit allowlist in production")
+		}
+	}
 	return cfg, nil
+}
+
+func contains(values []string, needle string) bool {
+	for _, value := range values {
+		if value == needle {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Config) IsProduction() bool {

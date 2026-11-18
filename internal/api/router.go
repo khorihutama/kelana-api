@@ -19,9 +19,12 @@ func NewRouter(cfg *config.Config, logger *slog.Logger, container *di.Container)
 	router := gin.New()
 	router.Use(middleware.RequestID())
 	router.Use(middleware.Recovery(logger))
+	router.Use(middleware.SecurityHeaders())
 	router.Use(middleware.CORS(cfg.CORSOrigins))
+	router.Use(middleware.BodyLimit(cfg.MaxBodyBytes))
 	router.Use(requestLogger(logger))
 
+	registerOpenAPI(router)
 	container.Health.RegisterPath(router.Group(""))
 
 	v1 := router.Group("/api/v1")
@@ -41,12 +44,20 @@ func requestLogger(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		c.Next()
-		logger.Info("http request",
+		attrs := []any{
 			"request_id", c.GetString("request_id"),
 			"method", c.Request.Method,
 			"path", c.Request.URL.Path,
 			"status", c.Writer.Status(),
 			"duration_ms", time.Since(start).Milliseconds(),
-		)
+			"client_ip", c.ClientIP(),
+		}
+		if userID := c.GetString("user_id"); userID != "" {
+			attrs = append(attrs, "user_id", userID)
+		}
+		if code := c.GetString("error_code"); code != "" {
+			attrs = append(attrs, "error_code", code)
+		}
+		logger.Info("http request", attrs...)
 	}
 }

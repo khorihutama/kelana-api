@@ -7,17 +7,87 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version-file: go.mod
           cache: true
       - name: Vet
         run: go vet ./...
-      - name: Test
+      - name: Unit tests
         run: go test ./...
       - name: Build
         run: go build ./...
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: OpenAPI lint
+        run: npx --yes @redocly/cli@latest lint internal/api/openapi.json
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: hsi_go_api
+          POSTGRES_USER: hsi
+          POSTGRES_PASSWORD: hsi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hsi -d hsi_go_api"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      APP_ENV: test
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_DATABASE: hsi_go_api
+      DB_USERNAME: hsi
+      DB_PASSWORD: hsi
+      DB_SCHEMA: public
+      REDIS_ADDR: localhost:6379
+      JWT_SECRET: ci-jwt-secret-that-is-at-least-32-chars
+      REFRESH_COOKIE_NAME: hsi_refresh
+      CORS_ORIGINS: http://localhost:3000
+      MAIL_DRIVER: mock
+      PAYMENT_PROVIDER: mock
+      MOCK_WEBHOOK_SECRET: ci-mock-webhook-secret
+      STORAGE_DRIVER: local
+      UPLOADS_DIR: ./uploads
+      DOCUMENT_ENC_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DOCUMENT_URL_TTL_SECONDS: "300"
+      SEAT_LOCK_TTL_SECONDS: "900"
+      SEAT_HOLD_SAFETY_TTL_SECONDS: "1800"
+      SEAT_SWEEP_INTERVAL_SECONDS: "30"
+      PAYMENT_TTL_SECONDS: "86400"
+      PAYMENT_EXPIRY_INTERVAL_SECONDS: "30"
+      MAX_REQUEST_BODY_BYTES: "8388608"
+      WA_GROUP_URL: https://chat.whatsapp.com/ci-placeholder
+      SEED_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Migrate
+        run: go run ./cmd/migrate up
+      - name: Seed
+        run: go run ./cmd/seed
+      - name: Integration tests
+        run: go test -tags integration ./...

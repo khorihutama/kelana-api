@@ -28,7 +28,7 @@ func New(svc *service.Service, limiter *ratelimit.Limiter) *Handler {
 }
 
 func (h *Handler) RegisterPath(group *gin.RouterGroup, auth gin.HandlerFunc) {
-	group.POST("/reservations/:id/payments", auth, middleware.RateLimit(h.limiter, "payment:create", 20, time.Minute), h.create)
+	group.POST("/reservations/:id/payments", auth, middleware.RateLimitUser(h.limiter, "payment:create", 10, time.Minute), h.create)
 	group.GET("/payments/:id", auth, h.get)
 	group.POST("/payments/webhook/:provider", middleware.RateLimit(h.limiter, "payment:webhook", 120, time.Minute), h.webhook)
 }

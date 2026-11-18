@@ -1,15 +1,15 @@
 # HSI GO API
 
-Backend Go untuk HSI GO, aplikasi travel dan itinerary. Fase 0-6 berisi autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, dan my trips dengan expiry job.
+Backend Go untuk HSI GO, aplikasi travel dan itinerary. Fase 0-7 berisi autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, my trips + expiry job, dan hardening (rate limit, CORS, security headers, OpenAPI, CI, load test).
 
 ## Stack
 
-Go 1.24, Gin, GORM, PostgreSQL 17, Redis 7, goose (migrasi SQL), JWT access token + refresh token HttpOnly.
+Go 1.25, Gin, GORM, PostgreSQL 17, Redis 7, goose (migrasi SQL), JWT access token + refresh token HttpOnly.
 
 ## Prasyarat
 
-- Go 1.24+
-- Docker Compose v2
+- Go 1.25+
+- Docker Compose v2 (opsional: `make`; semua target juga bisa dijalankan dengan `go run`)
 
 ## Menjalankan
 
@@ -18,13 +18,13 @@ cp .env.example .env          # sesuaikan JWT_SECRET (minimal 32 karakter)
 # Isi DOCUMENT_ENC_KEY dengan base64 dari 32 byte acak: openssl rand -base64 32
 # Jika port 5432 sudah dipakai stack lain, ubah DB_PORT=5433 di .env.
 # Compose memetakan DB_PORT host ke 5432 di container.
-make docker-up                # postgres + redis
-make migrate-up
-make seed
-make run
+docker compose up -d postgres redis
+go run ./cmd/migrate up
+go run ./cmd/seed
+go run ./cmd/api
 ```
 
-Server berjalan di `http://localhost:8080`.
+Tanpa `make` pun jalan dengan perintah di atas. Server berjalan di `http://localhost:8080`; dokumentasi mesin ada di `GET /openapi.json`.
 
 ## Environment
 
@@ -37,7 +37,8 @@ Server berjalan di `http://localhost:8080`.
 | `REDIS_ADDR` | Alamat Redis, default `localhost:6379` |
 | `JWT_SECRET` | Minimal 32 karakter; dipakai access token dan HMAC OTP |
 | `REFRESH_COOKIE_NAME` | Nama cookie refresh, default `hsi_refresh` |
-| `CORS_ORIGINS` | Origin diizinkan, pisahkan dengan koma |
+| `CORS_ORIGINS` | Allowlist origin, pisahkan dengan koma; produksi wajib eksplisit dan tanpa `*` |
+| `MAX_REQUEST_BODY_BYTES` | Batas body global, default `8388608` (8 MB); upload dokumen tetap dibatasi 3 MB |
 | `MAIL_DRIVER` | Fase 1 hanya `mock` (kode OTP ditulis ke log) |
 | `SEED_ENABLED` | `true` untuk mengizinkan `make seed` |
 | `SEAT_LOCK_TTL_SECONDS` | Masa hold kursi, default `900` detik |
@@ -142,9 +143,33 @@ Job expiry berjalan di background:
 - Reservasi `PENDING_PAYMENT` lewat `lock_expires_at` -> `EXPIRED` dan seat dikembalikan; job idempoten dan memakai query DB sebagai fallback bila zset Redis hilang.
 - Payment `PENDING` lewat `expires_at` -> `EXPIRED`; reservasi yang masih `PENDING_PAYMENT` ikut `EXPIRED`. Payment/reservasi `PAID` tidak pernah disentuh, jadi seat tidak kembali.
 
+## Hardening
+
+Rate limit memakai Redis sehingga berlaku lintas instance. Limit saat ini:
+
+| Endpoint | Subjek | Limit |
+|---|---|---|
+| register | IP | 3/jam |
+| verify-email | IP | 10/menit |
+| resend-verification | IP | 3/jam |
+| login | IP | 5/menit |
+| refresh | IP | 30/menit |
+| lock | user | 10/menit |
+| payment create | user | 10/menit |
+| document upload | user | 20/menit |
+| webhook | IP | 120/menit |
+
+Respons 429 memakai envelope `RATE_LIMITED` dan header `Retry-After`, `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`. Semua respons mendapat security headers (`X-Content-Type-Options`, `X-Frame-Options`, CSP, Referrer-Policy, Permissions-Policy). CORS memakai allowlist; preflight `OPTIONS` mengembalikan 204 hanya dengan header allow untuk origin yang cocok.
+
+Log JSON menyertakan `request_id`, `client_ip`, `user_id`, dan `error_code` tanpa body atau token. Body global dibatasi `MAX_REQUEST_BODY_BYTES`. Graceful shutdown menangkap SIGINT/SIGTERM dan menutup server dengan timeout 10 detik.
+
+- OpenAPI 3.1: `GET /openapi.json` (29 path).
+- Load test k6: `loadtest/k6.js`; lihat `loadtest/README.md`.
+- CI: `.github/workflows/ci.yml` menjalankan vet, unit, build, OpenAPI lint, dan integration test dengan service Postgres/Redis.
+
 ## Status
 
-Fase 0-6 selesai: bootstrap, auth OTP, discovery, booking dengan seat lock Redis dan promo, dokumen terenkripsi, payment mock + webhook idempoten, serta my trips + expiry job. Fase berikutnya (hardening) belum diimplementasikan.
+Fase 0-7 selesai: seluruh backend, termasuk hardening. Tidak ada fase backend berikutnya kecuali diminta.
 
 ## Lisensi
 

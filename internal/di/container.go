@@ -77,7 +77,7 @@ func Build(cfg *config.Config, logger *slog.Logger, db *gorm.DB, rdb *goredis.Cl
 		SeatHoldSafetyTTL: cfg.SeatHoldSafetyTTL,
 		SeatSweepInterval: cfg.SeatSweepInterval,
 	}, logger)
-	bookingH := bookingHandler.New(bookingSvc)
+	bookingH := bookingHandler.New(bookingSvc, limiter)
 
 	docStore, err := storage.NewLocal(filepath.Join(cfg.UploadsDir, "documents"), cfg.DocumentEncKey)
 	if err != nil {

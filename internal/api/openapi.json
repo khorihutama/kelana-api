@@ -1,0 +1,1138 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HSI GO API",
+    "version": "1.0.0",
+    "description": "Backend HSI GO: auth OTP, discovery, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, dan my trips.",
+    "contact": { "name": "HSI GO" },
+    "license": { "name": "Proprietary", "identifier": "LicenseRef-Proprietary" }
+  },
+  "servers": [
+    { "url": "/", "description": "Current host" }
+  ],
+  "tags": [
+    { "name": "health", "description": "Liveness dan readiness" },
+    { "name": "auth", "description": "Registrasi, OTP, login, refresh, profil" },
+    { "name": "trips", "description": "Discovery trip, jadwal, destinasi, kategori" },
+    { "name": "booking", "description": "Seat lock, reservasi, promo" },
+    { "name": "documents", "description": "Dokumen peserta terenkripsi" },
+    { "name": "payments", "description": "Payment mock dan webhook HMAC" },
+    { "name": "mytrips", "description": "Trip milik user, detail, cancel" }
+  ],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Liveness",
+        "operationId": "healthz",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server hidup",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } }
+          },
+          "4XX": { "description": "Client error" }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Readiness Postgres dan Redis",
+        "operationId": "readyz",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Semua dependency siap",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ready" } } }
+          },
+          "503": {
+            "description": "Salah satu dependency tidak siap",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ready" } } }
+          },
+          "4XX": { "description": "Client error" }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Daftar akun dan kirim OTP",
+        "operationId": "register",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterRequest" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Akun dibuat, status PENDING_VERIFICATION",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterEnvelope" } } }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Verifikasi OTP 6 digit",
+        "operationId": "verifyEmail",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyEmailRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Email terverifikasi dan sesi dibuat",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthEnvelope" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/auth/resend-verification": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Kirim ulang OTP",
+        "operationId": "resendVerification",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ResendVerificationRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Kode dikirim ulang",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } }
+          },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Login email dan password",
+        "operationId": "login",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Login berhasil; refresh token di cookie HttpOnly",
+            "headers": {
+              "Set-Cookie": { "schema": { "type": "string" }, "description": "Refresh token HttpOnly" }
+            },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthEnvelope" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Putar refresh token",
+        "operationId": "refresh",
+        "security": [{ "cookieAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Access token baru; cookie refresh diputar",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthEnvelope" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Logout dan cabut sesi",
+        "operationId": "logout",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Sesi dicabut",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageEnvelope" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": ["auth"],
+        "summary": "Profil user yang login",
+        "operationId": "me",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Profil",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserEnvelope" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/trips": {
+      "get": {
+        "tags": ["trips"],
+        "summary": "List trip dengan filter dan pagination",
+        "operationId": "listTrips",
+        "security": [],
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "category", "in": "query", "schema": { "type": "string", "enum": ["OPEN", "PRIVATE", "EDU"] } },
+          { "name": "destination", "in": "query", "schema": { "type": "string" } },
+          { "name": "departure", "in": "query", "schema": { "type": "string" } },
+          { "name": "date_from", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "date_to", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "price_min_idr", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "price_max_idr", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "sort", "in": "query", "schema": { "type": "string", "enum": ["newest", "price_asc", "price_desc", "rating_desc", "departure_asc"] } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daftar trip",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TripListEnvelope" } } }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/v1/trips/{id}": {
+      "get": {
+        "tags": ["trips"],
+        "summary": "Detail trip",
+        "operationId": "tripDetail",
+        "security": [],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "responses": {
+          "200": {
+            "description": "Detail trip",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TripDetailEnvelope" } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/trips/{id}/schedules": {
+      "get": {
+        "tags": ["trips"],
+        "summary": "Jadwal trip",
+        "operationId": "tripSchedules",
+        "security": [],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "responses": {
+          "200": {
+            "description": "Daftar jadwal",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ScheduleListEnvelope" } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/destinations": {
+      "get": {
+        "tags": ["trips"],
+        "summary": "Daftar destinasi",
+        "operationId": "destinations",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Destinasi dan jumlah trip",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DestinationListEnvelope" } } }
+          },
+          "4XX": { "description": "Client error" }
+        }
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "tags": ["trips"],
+        "summary": "Daftar kategori",
+        "operationId": "categories",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Kategori dan jumlah trip",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CategoryListEnvelope" } } }
+          },
+          "4XX": { "description": "Client error" }
+        }
+      }
+    },
+    "/api/v1/reservations/lock": {
+      "post": {
+        "tags": ["booking"],
+        "summary": "Lock kursi dan buat reservasi",
+        "operationId": "lockReservation",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LockRequest" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Reservasi terkunci",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LockEnvelope" } } }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/reservations/{id}": {
+      "get": {
+        "tags": ["booking"],
+        "summary": "Detail reservasi milik user",
+        "operationId": "getReservation",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "responses": {
+          "200": {
+            "description": "Reservasi",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReservationEnvelope" } } }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/reservations/{id}/cancel": {
+      "post": {
+        "tags": ["booking"],
+        "summary": "Batalkan reservasi sebelum bayar",
+        "operationId": "cancelReservation",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "responses": {
+          "200": {
+            "description": "Reservasi dibatalkan",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ReservationEnvelope" } } }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/promos/validate": {
+      "post": {
+        "tags": ["booking"],
+        "summary": "Validasi kode promo",
+        "operationId": "validatePromo",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PromoValidateRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Diskon integer",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PromoEnvelope" } } }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/v1/documents": {
+      "post": {
+        "tags": ["documents"],
+        "summary": "Upload dokumen peserta",
+        "operationId": "uploadDocument",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file", "type", "participant_id"],
+                "properties": {
+                  "file": { "type": "string", "format": "binary" },
+                  "type": { "type": "string", "enum": ["KTP", "BUKU_NIKAH", "KK", "PASSPORT", "OTHER"] },
+                  "participant_id": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dokumen terenkripsi tersimpan",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DocumentEnvelope" } } }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "415": { "$ref": "#/components/responses/UnsupportedMedia" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/documents/{id}/url": {
+      "get": {
+        "tags": ["documents"],
+        "summary": "Buat signed URL 5 menit",
+        "operationId": "documentSignedURL",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "responses": {
+          "200": {
+            "description": "URL bertanda tangan",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DocumentURLEnvelope" } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/documents/{id}/content": {
+      "get": {
+        "tags": ["documents"],
+        "summary": "Unduh dokumen lewat signed URL",
+        "operationId": "documentContent",
+        "security": [],
+        "parameters": [
+          { "$ref": "#/components/parameters/IdempotentId" },
+          { "name": "exp", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" } },
+          { "name": "sig", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "File terdekripsi",
+            "content": {
+              "application/pdf": { "schema": { "type": "string", "format": "binary" } },
+              "image/jpeg": { "schema": { "type": "string", "format": "binary" } },
+              "image/png": { "schema": { "type": "string", "format": "binary" } }
+            }
+          },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "410": {
+            "description": "URL kedaluwarsa",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{id}": {
+      "delete": {
+        "tags": ["documents"],
+        "summary": "Hapus dokumen sebelum pembayaran",
+        "operationId": "deleteDocument",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "responses": {
+          "204": { "description": "Dokumen dihapus" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/v1/reservations/{id}/documents/completeness": {
+      "get": {
+        "tags": ["documents"],
+        "summary": "Cek kelengkapan dokumen reservasi",
+        "operationId": "documentCompleteness",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "responses": {
+          "200": {
+            "description": "Status kelengkapan per peserta",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompletenessEnvelope" } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/reservations/{id}/payments": {
+      "post": {
+        "tags": ["payments"],
+        "summary": "Buat payment mock",
+        "operationId": "createPayment",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreatePaymentRequest" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment baru",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PaymentEnvelope" } } }
+          },
+          "200": {
+            "description": "Payment PENDING dengan metode sama dikembalikan",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PaymentEnvelope" } } }
+          },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "429": { "$ref": "#/components/responses/RateLimited" }
+        }
+      }
+    },
+    "/api/v1/payments/{id}": {
+      "get": {
+        "tags": ["payments"],
+        "summary": "Status payment milik user",
+        "operationId": "getPayment",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "responses": {
+          "200": {
+            "description": "Payment",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PaymentEnvelope" } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/payments/webhook/{provider}": {
+      "post": {
+        "tags": ["payments"],
+        "summary": "Webhook provider (HMAC sebelum DB)",
+        "operationId": "paymentWebhook",
+        "security": [],
+        "parameters": [
+          { "name": "provider", "in": "path", "required": true, "schema": { "type": "string", "enum": ["mock"] } },
+          { "name": "X-Mock-Signature", "in": "header", "required": true, "schema": { "type": "string" }, "description": "Hex HMAC-SHA256 raw body" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MockWebhookRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Diterima; idempoten",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/WebhookEnvelope" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/v1/mytrips": {
+      "get": {
+        "tags": ["mytrips"],
+        "summary": "Daftar trip user per tab",
+        "operationId": "listMyTrips",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "tab", "in": "query", "schema": { "type": "string", "enum": ["BELUM_BAYAR", "SIAP_BERANGKAT", "SELESAI", "RIWAYAT"] } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daftar my trips",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MyTripListEnvelope" } } }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/api/v1/mytrips/{id}": {
+      "get": {
+        "tags": ["mytrips"],
+        "summary": "Detail my trip",
+        "operationId": "getMyTrip",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "responses": {
+          "200": {
+            "description": "Detail my trip",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MyTripDetailEnvelope" } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/v1/mytrips/{id}/cancel": {
+      "post": {
+        "tags": ["mytrips"],
+        "summary": "Batalkan reservasi dari my trips",
+        "operationId": "cancelMyTrip",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotentId" }],
+        "responses": {
+          "200": {
+            "description": "Reservasi dibatalkan",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MyTripDetailEnvelope" } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+      "cookieAuth": { "type": "apiKey", "in": "cookie", "name": "hsi_refresh" }
+    },
+    "parameters": {
+      "IdempotentId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Request tidak valid",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "Unauthorized": {
+        "description": "Token tidak ada/tidak valid",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "Forbidden": {
+        "description": "Bukan pemilik atau role tidak cukup",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "NotFound": {
+        "description": "Resource tidak ditemukan",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "Conflict": {
+        "description": "Konflik state (mis. kuota, lock, sudah dibayar)",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "ValidationError": {
+        "description": "Validasi gagal",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "TooLarge": {
+        "description": "Body/file terlalu besar",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "UnsupportedMedia": {
+        "description": "Tipe file tidak didukung",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "RateLimited": {
+        "description": "Rate limit terlampaui",
+        "headers": { "Retry-After": { "schema": { "type": "integer" }, "description": "Detik sampai boleh mencoba lagi" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error", "request_id"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": { "type": "string", "example": "VALIDATION_ERROR" },
+              "message": { "type": "string" },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": { "field": { "type": "string" }, "message": { "type": "string" } }
+                }
+              }
+            }
+          },
+          "request_id": { "type": "string", "example": "8d1c3f0e-5f2a-4d3e-9a8b-7c6d5e4f3a2b" }
+        }
+      },
+      "Meta": {
+        "type": "object",
+        "required": ["page", "limit", "total_items", "total_pages"],
+        "properties": {
+          "page": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "total_items": { "type": "integer", "format": "int64" },
+          "total_pages": { "type": "integer" }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "properties": { "data": { "type": "object", "properties": { "status": { "type": "string", "example": "ok" } } } }
+      },
+      "Ready": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string" },
+              "checks": { "type": "object", "additionalProperties": { "type": "string" } }
+            }
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "format": "email" },
+          "name": { "type": "string" },
+          "phone": { "type": "string" },
+          "role": { "type": "string" },
+          "email_verified_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["email", "password", "name"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 8, "maxLength": 72 },
+          "name": { "type": "string", "minLength": 2, "maxLength": 100 },
+          "phone": { "type": "string", "maxLength": 20 }
+        }
+      },
+      "VerifyEmailRequest": {
+        "type": "object",
+        "required": ["email", "code"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "code": { "type": "string", "pattern": "^[0-9]{6}$" }
+        }
+      },
+      "ResendVerificationRequest": {
+        "type": "object",
+        "required": ["email"],
+        "properties": { "email": { "type": "string", "format": "email" } }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string" }
+        }
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string" },
+          "name": { "type": "string" },
+          "status": { "type": "string", "example": "PENDING_VERIFICATION" }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": { "type": "string" },
+          "expires_in": { "type": "integer", "example": 900 },
+          "user": { "$ref": "#/components/schemas/User" }
+        }
+      },
+      "RegisterEnvelope": {
+        "type": "object",
+        "properties": { "data": { "$ref": "#/components/schemas/RegisterResponse" } }
+      },
+      "AuthEnvelope": {
+        "type": "object",
+        "properties": { "data": { "$ref": "#/components/schemas/AuthResponse" } }
+      },
+      "UserEnvelope": {
+        "type": "object",
+        "properties": { "data": { "$ref": "#/components/schemas/User" } }
+      },
+      "Message": { "type": "object", "properties": { "message": { "type": "string" } } },
+      "MessageEnvelope": { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/Message" } } },
+      "TripCard": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "slug": { "type": "string" },
+          "title": { "type": "string" },
+          "category": { "type": "string" },
+          "departure_city": { "type": "string" },
+          "destination_city": { "type": "string" },
+          "duration_days": { "type": "integer" },
+          "base_price_idr": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string", "example": "IDR" },
+          "hero_image_url": { "type": "string" },
+          "rating_avg": { "type": "number" },
+          "rating_count": { "type": "integer" },
+          "next_departure": { "type": "string", "format": "date" },
+          "seats_available": { "type": "integer" }
+        }
+      },
+      "TripListEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/TripCard" } },
+          "meta": { "$ref": "#/components/schemas/Meta" }
+        }
+      },
+      "Schedule": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "start_date": { "type": "string", "format": "date" },
+          "end_date": { "type": "string", "format": "date" },
+          "departure_point": { "type": "string" },
+          "price_idr": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string" },
+          "seats_available": { "type": "integer" },
+          "status": { "type": "string" }
+        }
+      },
+      "Itinerary": {
+        "type": "object",
+        "properties": {
+          "day_number": { "type": "integer" },
+          "title": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "Facility": {
+        "type": "object",
+        "properties": { "name": { "type": "string" }, "type": { "type": "string" } }
+      },
+      "HotelOption": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "address": { "type": "string" },
+          "facilities": { "type": "array", "items": { "type": "string" } },
+          "extra_cost_idr": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string" }
+        }
+      },
+      "TripDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/TripCard" },
+          {
+            "type": "object",
+            "properties": {
+              "description": { "type": "string" },
+              "required_documents": { "type": "array", "items": { "type": "string" } },
+              "itineraries": { "type": "array", "items": { "$ref": "#/components/schemas/Itinerary" } },
+              "facilities": { "type": "array", "items": { "$ref": "#/components/schemas/Facility" } },
+              "hotel_options": { "type": "array", "items": { "$ref": "#/components/schemas/HotelOption" } },
+              "schedules": { "type": "array", "items": { "$ref": "#/components/schemas/Schedule" } }
+            }
+          }
+        ]
+      },
+      "TripDetailEnvelope": {
+        "type": "object",
+        "properties": { "data": { "$ref": "#/components/schemas/TripDetail" } }
+      },
+      "ScheduleListEnvelope": {
+        "type": "object",
+        "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Schedule" } } }
+      },
+      "Destination": {
+        "type": "object",
+        "properties": { "city": { "type": "string" }, "count": { "type": "integer", "format": "int64" } }
+      },
+      "DestinationListEnvelope": {
+        "type": "object",
+        "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Destination" } } }
+      },
+      "Category": {
+        "type": "object",
+        "properties": { "category": { "type": "string" }, "count": { "type": "integer", "format": "int64" } }
+      },
+      "CategoryListEnvelope": {
+        "type": "object",
+        "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Category" } } }
+      },
+      "ParticipantInput": {
+        "type": "object",
+        "required": ["full_name", "gender", "phone", "email"],
+        "properties": {
+          "full_name": { "type": "string" },
+          "gender": { "type": "string", "enum": ["MALE", "FEMALE"] },
+          "phone": { "type": "string" },
+          "email": { "type": "string", "format": "email" }
+        }
+      },
+      "LockRequest": {
+        "type": "object",
+        "required": ["schedule_id", "participants", "pickup_point"],
+        "properties": {
+          "schedule_id": { "type": "string", "format": "uuid" },
+          "participants": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "$ref": "#/components/schemas/ParticipantInput" } },
+          "hotel_id": { "type": "string", "format": "uuid" },
+          "pickup_point": { "type": "string", "minLength": 3, "maxLength": 200 },
+          "notes": { "type": "string", "maxLength": 500 },
+          "promo_code": { "type": "string", "maxLength": 50 }
+        }
+      },
+      "Participant": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "full_name": { "type": "string" },
+          "gender": { "type": "string" },
+          "phone": { "type": "string" },
+          "email": { "type": "string" }
+        }
+      },
+      "Reservation": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string" },
+          "status": { "type": "string", "enum": ["PENDING_PAYMENT", "PAID", "EXPIRED", "CANCELLED", "COMPLETED"] },
+          "trip_id": { "type": "string", "format": "uuid" },
+          "schedule_id": { "type": "string", "format": "uuid" },
+          "participants": { "type": "array", "items": { "$ref": "#/components/schemas/Participant" } },
+          "unit_price_idr": { "type": "integer", "format": "int64" },
+          "total_amount_idr": { "type": "integer", "format": "int64" },
+          "discount_idr": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string" },
+          "pickup_point": { "type": "string" },
+          "notes": { "type": "string" },
+          "hotel_id": { "type": "string", "format": "uuid" },
+          "promo_code_id": { "type": "string", "format": "uuid" },
+          "lock_expires_at": { "type": "string", "format": "date-time" },
+          "payment_expires_at": { "type": "string", "format": "date-time" },
+          "seats_remaining": { "type": "integer", "format": "int64" }
+        }
+      },
+      "ReservationEnvelope": {
+        "type": "object",
+        "properties": { "data": { "$ref": "#/components/schemas/Reservation" } }
+      },
+      "LockEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "code": { "type": "string" },
+              "status": { "type": "string" },
+              "currency": { "type": "string" },
+              "lock_expires_at": { "type": "string", "format": "date-time" },
+              "total_amount_idr": { "type": "integer", "format": "int64" },
+              "discount_idr": { "type": "integer", "format": "int64" },
+              "seats_remaining": { "type": "integer", "format": "int64" }
+            }
+          }
+        }
+      },
+      "PromoValidateRequest": {
+        "type": "object",
+        "required": ["code", "subtotal_idr"],
+        "properties": {
+          "code": { "type": "string" },
+          "subtotal_idr": { "type": "integer", "format": "int64", "minimum": 1 }
+        }
+      },
+      "PromoEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "valid": { "type": "boolean" },
+              "code": { "type": "string" },
+              "discount_idr": { "type": "integer", "format": "int64" },
+              "final_total_idr": { "type": "integer", "format": "int64" }
+            }
+          }
+        }
+      },
+      "Document": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "reservation_id": { "type": "string", "format": "uuid" },
+          "participant_id": { "type": "string", "format": "uuid" },
+          "type": { "type": "string" },
+          "size_bytes": { "type": "integer", "format": "int64" },
+          "status": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DocumentEnvelope": {
+        "type": "object",
+        "properties": { "data": { "$ref": "#/components/schemas/Document" } }
+      },
+      "DocumentURLEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "type": { "type": "string" },
+              "size_bytes": { "type": "integer", "format": "int64" },
+              "status": { "type": "string" },
+              "download_url": { "type": "string" },
+              "expires_at": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "CompletenessEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "reservation_id": { "type": "string", "format": "uuid" },
+              "required_documents": { "type": "array", "items": { "type": "string" } },
+              "complete": { "type": "boolean" },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "participant_id": { "type": "string", "format": "uuid" },
+                    "full_name": { "type": "string" },
+                    "uploaded": { "type": "array", "items": { "type": "string" } },
+                    "missing": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              },
+              "missing": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "participant_id": { "type": "string", "format": "uuid" },
+                    "full_name": { "type": "string" },
+                    "type": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "CreatePaymentRequest": {
+        "type": "object",
+        "required": ["method"],
+        "properties": { "method": { "type": "string", "enum": ["VA_BCA", "VA_BSI", "VA_MANDIRI", "QRIS", "CARD"] } }
+      },
+      "Payment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "reservation_id": { "type": "string", "format": "uuid" },
+          "provider": { "type": "string" },
+          "method": { "type": "string" },
+          "status": { "type": "string", "enum": ["PENDING", "PAID", "EXPIRED", "FAILED", "REFUNDED"] },
+          "currency": { "type": "string" },
+          "amount_idr": { "type": "integer", "format": "int64" },
+          "va_number": { "type": "string" },
+          "qr_string": { "type": "string" },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "paid_at": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PaymentEnvelope": {
+        "type": "object",
+        "properties": { "data": { "$ref": "#/components/schemas/Payment" } }
+      },
+      "MockWebhookRequest": {
+        "type": "object",
+        "required": ["event_id", "payment_id", "status"],
+        "properties": {
+          "event_id": { "type": "string" },
+          "payment_id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string", "enum": ["PAID"] },
+          "amount_idr": { "type": "integer", "format": "int64" },
+          "paid_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WebhookEnvelope": {
+        "type": "object",
+        "properties": { "data": { "type": "object", "properties": { "received": { "type": "boolean" } } } }
+      },
+      "Timer": {
+        "type": "object",
+        "properties": {
+          "kind": { "type": "string", "enum": ["LOCK", "PAYMENT"] },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "remaining_seconds": { "type": "integer", "format": "int64" }
+        }
+      },
+      "MyTripListItem": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "code": { "type": "string" },
+          "status": { "type": "string" },
+          "tab": { "type": "string", "enum": ["BELUM_BAYAR", "SIAP_BERANGKAT", "SELESAI", "RIWAYAT"] },
+          "trip": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "slug": { "type": "string" },
+              "title": { "type": "string" },
+              "category": { "type": "string" },
+              "departure_city": { "type": "string" },
+              "destination_city": { "type": "string" }
+            }
+          },
+          "schedule": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "start_date": { "type": "string", "format": "date" },
+              "end_date": { "type": "string", "format": "date" }
+            }
+          },
+          "participants_count": { "type": "integer" },
+          "total_amount_idr": { "type": "integer", "format": "int64" },
+          "currency": { "type": "string" },
+          "payment": { "$ref": "#/components/schemas/Payment" },
+          "join_wa_url": { "type": "string", "description": "Hanya ada bila reservasi PAID" },
+          "timer": { "$ref": "#/components/schemas/Timer" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "MyTripListEnvelope": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/MyTripListItem" } },
+          "meta": { "$ref": "#/components/schemas/Meta" }
+        }
+      },
+      "MyTripDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/MyTripListItem" },
+          {
+            "type": "object",
+            "properties": {
+              "participants": { "type": "array", "items": { "$ref": "#/components/schemas/Participant" } },
+              "documents": { "type": "array", "items": { "$ref": "#/components/schemas/Document" } },
+              "discount_idr": { "type": "integer", "format": "int64" },
+              "pickup_point": { "type": "string" },
+              "notes": { "type": "string" },
+              "lock_expires_at": { "type": "string", "format": "date-time" },
+              "payment_expires_at": { "type": "string", "format": "date-time" },
+              "paid_at": { "type": "string", "format": "date-time" }
+            }
+          }
+        ]
+      },
+      "MyTripDetailEnvelope": {
+        "type": "object",
+        "properties": { "data": { "$ref": "#/components/schemas/MyTripDetail" } }
+      }
+    }
+  }
+}

@@ -32,7 +32,7 @@ func New(svc *service.Service, limiter *ratelimit.Limiter) *Handler {
 }
 
 func (h *Handler) RegisterPath(group *gin.RouterGroup, auth gin.HandlerFunc) {
-	group.POST("/documents", auth, middleware.RateLimit(h.limiter, "document:upload", 20, time.Minute), h.upload)
+	group.POST("/documents", auth, middleware.RateLimitUser(h.limiter, "document:upload", 20, time.Minute), h.upload)
 	group.GET("/documents/:id/url", auth, h.signedURL)
 	group.GET("/documents/:id/content", h.content)
 	group.DELETE("/documents/:id", auth, h.delete)

@@ -1,6 +1,6 @@
 # HSI GO API
 
-Backend Go untuk HSI GO, aplikasi travel dan itinerary. Fase 0-7 berisi autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, my trips + expiry job, dan hardening (rate limit, CORS, security headers, OpenAPI, CI, load test).
+Backend Go untuk HSI GO, aplikasi travel dan itinerary: autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, my trips + expiry job, dan hardening (rate limit, CORS, security headers, OpenAPI, CI, load test).
 
 ## Stack
 
@@ -39,16 +39,16 @@ Tanpa `make` pun jalan dengan perintah di atas. Server berjalan di `http://local
 | `REFRESH_COOKIE_NAME` | Nama cookie refresh, default `hsi_refresh` |
 | `CORS_ORIGINS` | Allowlist origin, pisahkan dengan koma; produksi wajib eksplisit dan tanpa `*` |
 | `MAX_REQUEST_BODY_BYTES` | Batas body global, default `8388608` (8 MB); upload dokumen tetap dibatasi 3 MB |
-| `MAIL_DRIVER` | Fase 1 hanya `mock` (kode OTP ditulis ke log) |
+| `MAIL_DRIVER` | `mock` (kode OTP ditulis ke log server) |
 | `SEED_ENABLED` | `true` untuk mengizinkan `make seed` |
 | `SEAT_LOCK_TTL_SECONDS` | Masa hold kursi, default `900` detik |
 | `SEAT_HOLD_SAFETY_TTL_SECONDS` | TTL cadangan key hold, default `1800`; wajib > `SEAT_LOCK_TTL_SECONDS` |
 | `SEAT_SWEEP_INTERVAL_SECONDS` | Interval sweeper, default `30` detik |
-| `STORAGE_DRIVER` | Fase 4 hanya `local` |
+| `STORAGE_DRIVER` | `local` |
 | `UPLOADS_DIR` | Root data upload; file dokumen masuk ke `<dir>/documents` dan tidak disajikan statis |
 | `DOCUMENT_ENC_KEY` | Base64 32 byte untuk AES-256-GCM; wajib, jangan commit |
 | `DOCUMENT_URL_TTL_SECONDS` | Masa berlaku signed URL, default `300` detik |
-| `PAYMENT_PROVIDER` | Fase 5 hanya `mock`; adapter Midtrans ada tetapi belum diaktifkan |
+| `PAYMENT_PROVIDER` | `mock`; adapter Midtrans ada tetapi belum diaktifkan |
 | `MOCK_WEBHOOK_SECRET` | Secret HMAC webhook mock, minimal 16 karakter |
 | `PAYMENT_TTL_SECONDS` | Masa bayar terpisah dari lock, default `86400` detik (24 jam) |
 | `PAYMENT_EXPIRY_INTERVAL_SECONDS` | Interval job expiry payment, default `30` detik |
@@ -92,7 +92,7 @@ Health tersedia di root (`/healthz`, `/readyz`) dan di `/api/v1`.
 
 Filter `GET /api/v1/trips`: `q`, `category` (OPEN/PRIVATE/EDU), `destination`, `departure`, `date_from`, `date_to`, `price_min_idr`, `price_max_idr`, `sort` (newest/price_asc/price_desc/rating_desc/departure_asc), `page`, `limit` (maks 100). Filter tidak valid menghasilkan 422 dengan envelope standar.
 
-Register membuat akun berstatus `PENDING_VERIFICATION` dan mengirim OTP 6 digit. Di fase 1 mail driver `mock` menulis kode ke log server. Login sebelum verifikasi ditolak dengan `EMAIL_NOT_VERIFIED`.
+Register membuat akun berstatus `PENDING_VERIFICATION` dan mengirim OTP 6 digit. Mail driver `mock` menulis kode OTP ke log server. Login sebelum verifikasi ditolak dengan `EMAIL_NOT_VERIFIED`.
 
 ## Perintah
 
@@ -169,7 +169,7 @@ Log JSON menyertakan `request_id`, `client_ip`, `user_id`, dan `error_code` tanp
 
 ## Status
 
-Fase 0-7 selesai: seluruh backend, termasuk hardening. Tidak ada fase backend berikutnya kecuali diminta.
+Backend lengkap: autentikasi OTP, discovery, booking + seat lock, dokumen terenkripsi, payment mock, my trips, dan hardening.
 
 ## Lisensi
 

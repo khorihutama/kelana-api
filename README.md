@@ -15,6 +15,8 @@ Go 1.24, Gin, GORM, PostgreSQL 17, Redis 7, goose (migrasi SQL), JWT access toke
 
 ```bash
 cp .env.example .env          # sesuaikan JWT_SECRET (minimal 32 karakter)
+# Jika port 5432 sudah dipakai stack lain, ubah DB_PORT=5433 di .env.
+# Compose memetakan DB_PORT host ke 5432 di container.
 make docker-up                # postgres + redis
 make migrate-up
 make seed
@@ -38,12 +40,14 @@ Server berjalan di `http://localhost:8080`.
 | `MAIL_DRIVER` | Fase 1 hanya `mock` (kode OTP ditulis ke log) |
 | `SEED_ENABLED` | `true` untuk mengizinkan `make seed` |
 
-## Endpoint fase 1
+## Endpoint
+
+Health tersedia di root (`/healthz`, `/readyz`) dan di `/api/v1`.
 
 | Method | Path | Auth |
 |---|---|---|
-| GET | `/api/v1/healthz` | Publik |
-| GET | `/api/v1/readyz` | Publik |
+| GET | `/healthz`, `/readyz` | Publik |
+| GET | `/api/v1/healthz`, `/api/v1/readyz` | Publik |
 | POST | `/api/v1/auth/register` | Publik |
 | POST | `/api/v1/auth/verify-email` | Publik |
 | POST | `/api/v1/auth/resend-verification` | Publik |
@@ -51,7 +55,13 @@ Server berjalan di `http://localhost:8080`.
 | POST | `/api/v1/auth/refresh` | Cookie refresh |
 | POST | `/api/v1/auth/logout` | Bearer |
 | GET | `/api/v1/auth/me` | Bearer |
-| GET | `/api/v1/trips?page=1&limit=10` | Publik |
+| GET | `/api/v1/trips` | Publik |
+| GET | `/api/v1/trips/{id-or-slug}` | Publik |
+| GET | `/api/v1/trips/{id-or-slug}/schedules` | Publik |
+| GET | `/api/v1/destinations` | Publik |
+| GET | `/api/v1/categories` | Publik |
+
+Filter `GET /api/v1/trips`: `q`, `category` (OPEN/PRIVATE/EDU), `destination`, `departure`, `date_from`, `date_to`, `price_min_idr`, `price_max_idr`, `sort` (newest/price_asc/price_desc/rating_desc/departure_asc), `page`, `limit` (maks 100). Filter tidak valid menghasilkan 422 dengan envelope standar.
 
 Register membuat akun berstatus `PENDING_VERIFICATION` dan mengirim OTP 6 digit. Di fase 1 mail driver `mock` menulis kode ke log server. Login sebelum verifikasi ditolak dengan `EMAIL_NOT_VERIFIED`.
 
@@ -69,7 +79,7 @@ make run
 
 ## Status
 
-Fase 0-1 selesai. Fase berikutnya (discovery filter, seat lock Redis, dokumen, payment, my trips) belum diimplementasikan.
+Fase 0-2 selesai: bootstrap, auth OTP, discovery (filter/search/detail/jadwal/destinasi). Fase berikutnya (seat lock Redis, dokumen, payment, my trips) belum diimplementasikan.
 
 ## Lisensi
 

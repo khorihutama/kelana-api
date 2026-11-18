@@ -22,6 +22,8 @@ func NewRouter(cfg *config.Config, logger *slog.Logger, container *di.Container)
 	router.Use(middleware.CORS(cfg.CORSOrigins))
 	router.Use(requestLogger(logger))
 
+	container.Health.RegisterPath(router.Group(""))
+
 	v1 := router.Group("/api/v1")
 	container.Health.RegisterPath(v1)
 	container.Auth.RegisterPath(v1, middleware.Auth(container.Tokens))

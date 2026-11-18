@@ -17,4 +17,17 @@ const (
 	CodeRefreshInvalid   = "REFRESH_INVALID"
 	CodeRefreshReuse     = "REFRESH_REUSE_DETECTED"
 	CodeUserNotFound     = "USER_NOT_FOUND"
+
+	CodeScheduleNotFound  = "SCHEDULE_NOT_FOUND"
+	CodeScheduleClosed    = "SCHEDULE_CLOSED"
+	CodeSeatUnavailable   = "SEAT_UNAVAILABLE"
+	CodeActiveReservation = "RESERVATION_ALREADY_ACTIVE"
+	CodeHotelRequired     = "HOTEL_REQUIRED"
+	CodeHotelInvalid      = "HOTEL_INVALID"
+	CodeInvalidState      = "INVALID_STATE"
+	CodePromoNotFound     = "PROMO_NOT_FOUND"
+	CodePromoInactive     = "PROMO_INACTIVE"
+	CodePromoExpired      = "PROMO_EXPIRED"
+	CodePromoQuota        = "PROMO_QUOTA_EXHAUSTED"
+	CodePromoMin          = "PROMO_MIN_TRANSACTION"
 )

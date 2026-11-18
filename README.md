@@ -39,6 +39,8 @@ Server berjalan di `http://localhost:8080`.
 | `CORS_ORIGINS` | Origin diizinkan, pisahkan dengan koma |
 | `MAIL_DRIVER` | Fase 1 hanya `mock` (kode OTP ditulis ke log) |
 | `SEED_ENABLED` | `true` untuk mengizinkan `make seed` |
+| `SEAT_LOCK_TTL_SECONDS` | Masa hold kursi, default `900` detik |
+| `SEAT_SWEEP_INTERVAL_SECONDS` | Interval sweeper, default `30` detik |
 
 ## Endpoint
 
@@ -60,6 +62,10 @@ Health tersedia di root (`/healthz`, `/readyz`) dan di `/api/v1`.
 | GET | `/api/v1/trips/{id-or-slug}/schedules` | Publik |
 | GET | `/api/v1/destinations` | Publik |
 | GET | `/api/v1/categories` | Publik |
+| POST | `/api/v1/reservations/lock` | Bearer |
+| GET | `/api/v1/reservations/{id}` | Bearer (pemilik) |
+| POST | `/api/v1/reservations/{id}/cancel` | Bearer (pemilik) |
+| POST | `/api/v1/promos/validate` | Bearer |
 
 Filter `GET /api/v1/trips`: `q`, `category` (OPEN/PRIVATE/EDU), `destination`, `departure`, `date_from`, `date_to`, `price_min_idr`, `price_max_idr`, `sort` (newest/price_asc/price_desc/rating_desc/departure_asc), `page`, `limit` (maks 100). Filter tidak valid menghasilkan 422 dengan envelope standar.
 
@@ -79,7 +85,7 @@ make run
 
 ## Status
 
-Fase 0-2 selesai: bootstrap, auth OTP, discovery (filter/search/detail/jadwal/destinasi). Fase berikutnya (seat lock Redis, dokumen, payment, my trips) belum diimplementasikan.
+Fase 0-3 selesai: bootstrap, auth OTP, discovery, booking dengan seat lock Redis dan promo. Fase berikutnya (dokumen, payment, my trips) belum diimplementasikan.
 
 ## Lisensi
 

@@ -26,8 +26,10 @@ func NewRouter(cfg *config.Config, logger *slog.Logger, container *di.Container)
 
 	v1 := router.Group("/api/v1")
 	container.Health.RegisterPath(v1)
-	container.Auth.RegisterPath(v1, middleware.Auth(container.Tokens))
+	authMiddleware := middleware.Auth(container.Tokens)
+	container.Auth.RegisterPath(v1, authMiddleware)
 	container.Trip.RegisterPath(v1)
+	container.Booking.RegisterPath(v1, authMiddleware)
 
 	return router
 }

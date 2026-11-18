@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -28,9 +29,11 @@ type Config struct {
 	UploadsDir        string
 	SeedEnabled       bool
 
-	AccessTokenTTL  time.Duration
-	RefreshTokenTTL time.Duration
-	OTPExpiry       time.Duration
+	AccessTokenTTL    time.Duration
+	RefreshTokenTTL   time.Duration
+	OTPExpiry         time.Duration
+	SeatLockTTL       time.Duration
+	SeatSweepInterval time.Duration
 }
 
 func Load() (*Config, error) {
@@ -60,6 +63,8 @@ func Load() (*Config, error) {
 		AccessTokenTTL:    15 * time.Minute,
 		RefreshTokenTTL:   30 * 24 * time.Hour,
 		OTPExpiry:         10 * time.Minute,
+		SeatLockTTL:       time.Duration(envInt("SEAT_LOCK_TTL_SECONDS", 900)) * time.Second,
+		SeatSweepInterval: time.Duration(envInt("SEAT_SWEEP_INTERVAL_SECONDS", 30)) * time.Second,
 	}
 
 	if len(cfg.JWTSecret) < 32 {
@@ -67,6 +72,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.RefreshCookieName == "" {
 		return nil, fmt.Errorf("REFRESH_COOKIE_NAME is required")
+	}
+	if cfg.SeatLockTTL <= 0 || cfg.SeatSweepInterval <= 0 {
+		return nil, fmt.Errorf("SEAT_LOCK_TTL_SECONDS and SEAT_SWEEP_INTERVAL_SECONDS must be positive")
 	}
 	return cfg, nil
 }
@@ -87,6 +95,18 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func envInt(key string, fallback int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
 }
 
 func splitCSV(raw string) []string {

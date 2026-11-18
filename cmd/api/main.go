@@ -25,7 +25,8 @@ func main() {
 	}
 	logger := logging.New(cfg.AppEnv)
 
-	ctx := context.Background()
+	ctx, cancelApp := context.WithCancel(context.Background())
+	defer cancelApp()
 	db, err := database.Connect(cfg.DSN(), cfg.IsProduction())
 	if err != nil {
 		logger.Error("database connection failed", "error", err)
@@ -39,6 +40,7 @@ func main() {
 	defer rdb.Close()
 
 	container := di.Build(cfg, logger, db, rdb)
+	container.BookingSvc.StartSweeper(ctx)
 	router := api.NewRouter(cfg, logger, container)
 	srv := server.New(":"+cfg.RestPort, router)
 
@@ -54,6 +56,7 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 
+	cancelApp()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {

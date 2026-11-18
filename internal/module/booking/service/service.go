@@ -19,6 +19,7 @@ import (
 
 type Config struct {
 	SeatLockTTL       time.Duration
+	SeatHoldSafetyTTL time.Duration
 	SeatSweepInterval time.Duration
 }
 
@@ -31,6 +32,9 @@ type Service struct {
 }
 
 func New(repo repository.Repository, seats *redis.SeatHoldStore, cfg Config, logger *slog.Logger) *Service {
+	if cfg.SeatHoldSafetyTTL <= cfg.SeatLockTTL {
+		cfg.SeatHoldSafetyTTL = cfg.SeatLockTTL * 2
+	}
 	return &Service{
 		repo:   repo,
 		seats:  seats,
@@ -100,7 +104,7 @@ func (s *Service) Lock(ctx context.Context, userID string, req dto.LockRequest) 
 	reservationCode := "HSI-" + strings.ToUpper(strings.ReplaceAll(uuid.NewString(), "-", "")[:10])
 	lockExpiresAt := s.now().Add(s.cfg.SeatLockTTL)
 
-	remaining, err := s.seats.Lock(ctx, scheduleID, reservationID, count, s.cfg.SeatLockTTL)
+	remaining, err := s.seats.Lock(ctx, scheduleID, reservationID, count, s.cfg.SeatLockTTL, s.cfg.SeatHoldSafetyTTL)
 	if err != nil {
 		return nil, errs.Internal(err)
 	}
@@ -108,7 +112,7 @@ func (s *Service) Lock(ctx context.Context, userID string, req dto.LockRequest) 
 		if err := s.seats.InitIfMissing(ctx, scheduleID, int64(schedule.QuotaTotal-schedule.SeatsSold)); err != nil {
 			return nil, errs.Internal(err)
 		}
-		remaining, err = s.seats.Lock(ctx, scheduleID, reservationID, count, s.cfg.SeatLockTTL)
+		remaining, err = s.seats.Lock(ctx, scheduleID, reservationID, count, s.cfg.SeatLockTTL, s.cfg.SeatHoldSafetyTTL)
 		if err != nil {
 			return nil, errs.Internal(err)
 		}

@@ -17,16 +17,19 @@ if not avail then return -2 end
 avail = tonumber(avail)
 if avail < tonumber(ARGV[1]) then return -1 end
 redis.call('DECRBY', KEYS[1], ARGV[1])
--- Hold count intentionally has no TTL: the zset score owns expiry so the
--- sweeper can always return the exact number of seats.
-redis.call('SET', KEYS[2], ARGV[1])
+-- The zset score owns logical expiry. The safety TTL on the hold count is only
+-- a last resort if the sweeper stops; boot reconciliation repairs availability.
+redis.call('SET', KEYS[2], ARGV[1], 'EX', ARGV[4])
 redis.call('ZADD', KEYS[3], ARGV[2], ARGV[3])
 return avail - tonumber(ARGV[1])
 `
 
 	releaseScript = `
 local n = redis.call('GET', KEYS[2])
-if not n then return 0 end
+if not n then
+  redis.call('ZREM', KEYS[3], ARGV[1])
+  return -1
+end
 redis.call('INCRBY', KEYS[1], n)
 redis.call('DEL', KEYS[2])
 redis.call('ZREM', KEYS[3], ARGV[1])
@@ -64,11 +67,15 @@ func holdsKey(scheduleID uuid.UUID) string {
 
 // Lock atomically reserves n seats for a schedule.
 // Returns remaining seats, -1 when unavailable, -2 when the counter is not initialized.
-func (s *SeatHoldStore) Lock(ctx context.Context, scheduleID, reservationID uuid.UUID, n int, ttl time.Duration) (int64, error) {
+func (s *SeatHoldStore) Lock(ctx context.Context, scheduleID, reservationID uuid.UUID, n int, ttl, safetyTTL time.Duration) (int64, error) {
 	now := time.Now().UTC()
+	safetySeconds := int64(safetyTTL.Seconds())
+	if safetySeconds < 1 {
+		safetySeconds = 1
+	}
 	result, err := s.client.Eval(ctx, lockScript,
 		[]string{availKey(scheduleID), holdKey(reservationID), holdsKey(scheduleID)},
-		n, now.Add(ttl).Unix(), reservationID.String(),
+		n, now.Add(ttl).Unix(), reservationID.String(), safetySeconds,
 	).Int64()
 	if err != nil {
 		return 0, err

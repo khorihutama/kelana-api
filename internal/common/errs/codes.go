@@ -30,4 +30,14 @@ const (
 	CodePromoExpired      = "PROMO_EXPIRED"
 	CodePromoQuota        = "PROMO_QUOTA_EXHAUSTED"
 	CodePromoMin          = "PROMO_MIN_TRANSACTION"
+
+	CodeDocumentNotFound   = "DOCUMENT_NOT_FOUND"
+	CodeParticipantMissing = "PARTICIPANT_NOT_FOUND"
+	CodeInvalidDocType     = "INVALID_DOCUMENT_TYPE"
+	CodeFileTooLarge       = "FILE_TOO_LARGE"
+	CodeUnsupportedMedia   = "UNSUPPORTED_MEDIA_TYPE"
+	CodeAlreadyPaid        = "ALREADY_PAID"
+	CodeLockExpired        = "LOCK_EXPIRED"
+	CodeSignatureInvalid   = "SIGNATURE_INVALID"
+	CodeURLExpired         = "URL_EXPIRED"
 )

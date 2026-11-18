@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
 	"strconv"
@@ -27,13 +28,16 @@ type Config struct {
 	PaymentProvider   string
 	StorageDriver     string
 	UploadsDir        string
+	DocumentEncKey    []byte
 	SeedEnabled       bool
 
 	AccessTokenTTL    time.Duration
 	RefreshTokenTTL   time.Duration
 	OTPExpiry         time.Duration
 	SeatLockTTL       time.Duration
+	SeatHoldSafetyTTL time.Duration
 	SeatSweepInterval time.Duration
+	DocumentURLTTL    time.Duration
 }
 
 func Load() (*Config, error) {
@@ -64,8 +68,16 @@ func Load() (*Config, error) {
 		RefreshTokenTTL:   30 * 24 * time.Hour,
 		OTPExpiry:         10 * time.Minute,
 		SeatLockTTL:       time.Duration(envInt("SEAT_LOCK_TTL_SECONDS", 900)) * time.Second,
+		SeatHoldSafetyTTL: time.Duration(envInt("SEAT_HOLD_SAFETY_TTL_SECONDS", 1800)) * time.Second,
 		SeatSweepInterval: time.Duration(envInt("SEAT_SWEEP_INTERVAL_SECONDS", 30)) * time.Second,
+		DocumentURLTTL:    time.Duration(envInt("DOCUMENT_URL_TTL_SECONDS", 300)) * time.Second,
 	}
+
+	encKey, err := decodeKey(getenvAny("DOCUMENT_ENC_KEY", "DOC_ENCRYPTION_KEY"))
+	if err != nil {
+		return nil, err
+	}
+	cfg.DocumentEncKey = encKey
 
 	if len(cfg.JWTSecret) < 32 {
 		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters")
@@ -75,6 +87,15 @@ func Load() (*Config, error) {
 	}
 	if cfg.SeatLockTTL <= 0 || cfg.SeatSweepInterval <= 0 {
 		return nil, fmt.Errorf("SEAT_LOCK_TTL_SECONDS and SEAT_SWEEP_INTERVAL_SECONDS must be positive")
+	}
+	if cfg.SeatHoldSafetyTTL <= cfg.SeatLockTTL {
+		return nil, fmt.Errorf("SEAT_HOLD_SAFETY_TTL_SECONDS must be greater than SEAT_LOCK_TTL_SECONDS")
+	}
+	if cfg.DocumentURLTTL <= 0 {
+		return nil, fmt.Errorf("DOCUMENT_URL_TTL_SECONDS must be positive")
+	}
+	if !strings.EqualFold(cfg.StorageDriver, "local") {
+		return nil, fmt.Errorf("STORAGE_DRIVER %q is not implemented; use local", cfg.StorageDriver)
 	}
 	return cfg, nil
 }
@@ -95,6 +116,29 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getenvAny(keys ...string) string {
+	for _, key := range keys {
+		if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+func decodeKey(raw string) ([]byte, error) {
+	if raw == "" {
+		return nil, fmt.Errorf("DOCUMENT_ENC_KEY is required (base64-encoded 32 bytes)")
+	}
+	key, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil {
+		return nil, fmt.Errorf("DOCUMENT_ENC_KEY must be valid base64: %w", err)
+	}
+	if len(key) != 32 {
+		return nil, fmt.Errorf("DOCUMENT_ENC_KEY must decode to 32 bytes, got %d", len(key))
+	}
+	return key, nil
 }
 
 func envInt(key string, fallback int) int {

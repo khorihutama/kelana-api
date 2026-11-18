@@ -39,7 +39,11 @@ func main() {
 	}
 	defer rdb.Close()
 
-	container := di.Build(cfg, logger, db, rdb)
+	container, err := di.Build(cfg, logger, db, rdb)
+	if err != nil {
+		logger.Error("dependency setup failed", "error", err)
+		os.Exit(1)
+	}
 	container.BookingSvc.StartSweeper(ctx)
 	router := api.NewRouter(cfg, logger, container)
 	srv := server.New(":"+cfg.RestPort, router)

@@ -25,6 +25,9 @@ import (
 	documentService "github.com/khorihutama/hsi-go-api/internal/module/document/service"
 	healthHandler "github.com/khorihutama/hsi-go-api/internal/module/health/handler"
 	healthService "github.com/khorihutama/hsi-go-api/internal/module/health/service"
+	mytripHandler "github.com/khorihutama/hsi-go-api/internal/module/mytrip/handler"
+	mytripRepository "github.com/khorihutama/hsi-go-api/internal/module/mytrip/repository"
+	mytripService "github.com/khorihutama/hsi-go-api/internal/module/mytrip/service"
 	paymentHandler "github.com/khorihutama/hsi-go-api/internal/module/payment/handler"
 	paymentPort "github.com/khorihutama/hsi-go-api/internal/module/payment/port"
 	paymentRepository "github.com/khorihutama/hsi-go-api/internal/module/payment/repository"
@@ -40,9 +43,11 @@ type Container struct {
 	Booking    *bookingHandler.Handler
 	Document   *documentHandler.Handler
 	Payment    *paymentHandler.Handler
+	MyTrip     *mytripHandler.Handler
 	Health     *healthHandler.Handler
 	Tokens     *authToken.Manager
 	BookingSvc *bookingService.Service
+	PaymentSvc *paymentService.Service
 }
 
 func Build(cfg *config.Config, logger *slog.Logger, db *gorm.DB, rdb *goredis.Client) (*Container, error) {
@@ -87,13 +92,22 @@ func Build(cfg *config.Config, logger *slog.Logger, db *gorm.DB, rdb *goredis.Cl
 	paymentRepo := paymentRepository.New(db)
 	paymentSvc := paymentService.New(paymentRepo, seatStore, docSvc,
 		[]paymentPort.Provider{paymentinfra.NewMock(cfg.MockWebhookSecret)},
-		paymentService.Config{Provider: cfg.PaymentProvider, PaymentTTL: cfg.PaymentTTL},
+		paymentService.Config{
+			Provider:       cfg.PaymentProvider,
+			PaymentTTL:     cfg.PaymentTTL,
+			ExpiryInterval: cfg.PaymentExpiryInterval,
+		},
 		logger,
 	)
 	paymentH := paymentHandler.New(paymentSvc, limiter)
 
+	mytripRepo := mytripRepository.New(db)
+	mytripSvc := mytripService.New(mytripRepo, bookingSvc, mytripService.Config{WAGroupURL: cfg.WAGroupURL}, logger)
+	mytripH := mytripHandler.New(mytripSvc)
+
 	return &Container{
-		Auth: authH, Trip: tripH, Booking: bookingH, Document: docH, Payment: paymentH, Health: healthH,
-		Tokens: tokens, BookingSvc: bookingSvc,
+		Auth: authH, Trip: tripH, Booking: bookingH, Document: docH, Payment: paymentH,
+		MyTrip: mytripH, Health: healthH,
+		Tokens: tokens, BookingSvc: bookingSvc, PaymentSvc: paymentSvc,
 	}, nil
 }

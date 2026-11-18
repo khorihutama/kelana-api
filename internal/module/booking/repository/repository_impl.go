@@ -62,6 +62,21 @@ func (r *gormRepository) ListOpenSchedules(ctx context.Context) ([]ScheduleInfo,
 	return rows, err
 }
 
+func (r *gormRepository) ListExpiredReservations(ctx context.Context, now time.Time, limit int) ([]ExpiredReservation, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	var rows []ExpiredReservation
+	err := r.db.WithContext(ctx).
+		Table("reservations").
+		Select("id, schedule_id").
+		Where("status = ? AND lock_expires_at <= ?", "PENDING_PAYMENT", now).
+		Order("lock_expires_at ASC").
+		Limit(limit).
+		Scan(&rows).Error
+	return rows, err
+}
+
 func (r *gormRepository) GetPromo(ctx context.Context, code string) (*entity.Promo, error) {
 	var promo entity.Promo
 	err := r.db.WithContext(ctx).Where("code = ?", code).First(&promo).Error

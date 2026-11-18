@@ -45,6 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 	container.BookingSvc.StartSweeper(ctx)
+	container.PaymentSvc.StartExpiryJob(ctx)
 	router := api.NewRouter(cfg, logger, container)
 	srv := server.New(":"+cfg.RestPort, router)
 

@@ -189,6 +189,69 @@ func (r *gormRepository) ConfirmWebhook(ctx context.Context, provider string, ev
 	return outcome, err
 }
 
+// ExpireDuePayments marks at most limit pending payments as EXPIRED. When the
+// reservation is still locked, it expires the reservation too and reports that
+// the caller must release the Redis seat hold.
+func (r *gormRepository) ExpireDuePayments(ctx context.Context, now time.Time, limit int) ([]ExpiredPayment, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	var out []ExpiredPayment
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var due []struct {
+			ID            uuid.UUID `gorm:"column:id"`
+			ReservationID uuid.UUID `gorm:"column:reservation_id"`
+		}
+		if err := tx.Raw(`
+			SELECT id, reservation_id
+			FROM payments
+			WHERE status = 'PENDING' AND expires_at <= ?
+			ORDER BY expires_at ASC
+			LIMIT ?
+			FOR UPDATE SKIP LOCKED
+		`, now, limit).Scan(&due).Error; err != nil {
+			return err
+		}
+		for _, payment := range due {
+			update := tx.Model(&entity.Payment{}).
+				Where("id = ? AND status = 'PENDING'", payment.ID).
+				Updates(map[string]any{"status": "EXPIRED", "updated_at": now})
+			if update.Error != nil {
+				return update.Error
+			}
+			if update.RowsAffected != 1 {
+				continue
+			}
+			item := ExpiredPayment{PaymentID: payment.ID, ReservationID: payment.ReservationID}
+			var reservation struct {
+				Status     string    `gorm:"column:status"`
+				ScheduleID uuid.UUID `gorm:"column:schedule_id"`
+			}
+			if err := tx.Table("reservations").
+				Select("status, schedule_id").
+				Where("id = ?", payment.ReservationID).
+				Take(&reservation).Error; err != nil {
+				return err
+			}
+			if reservation.Status == "PENDING_PAYMENT" {
+				result := tx.Table("reservations").
+					Where("id = ? AND status = 'PENDING_PAYMENT'", payment.ReservationID).
+					Update("status", "EXPIRED")
+				if result.Error != nil {
+					return result.Error
+				}
+				if result.RowsAffected == 1 {
+					item.ReleaseSeat = true
+					item.ScheduleID = reservation.ScheduleID
+				}
+			}
+			out = append(out, item)
+		}
+		return nil
+	})
+	return out, err
+}
+
 func isUniqueViolation(err error, constraint string) bool {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" && (constraint == "" || pgErr.ConstraintName == constraint) {

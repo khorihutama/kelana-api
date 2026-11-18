@@ -23,10 +23,16 @@ type HotelInfo struct {
 	ExtraCostIDR int64     `gorm:"column:extra_cost_idr"`
 }
 
+type ExpiredReservation struct {
+	ID         uuid.UUID `gorm:"column:id"`
+	ScheduleID uuid.UUID `gorm:"column:schedule_id"`
+}
+
 type Repository interface {
 	GetSchedule(ctx context.Context, id uuid.UUID) (*ScheduleInfo, error)
 	ListHotels(ctx context.Context, tripID uuid.UUID) ([]HotelInfo, error)
 	ListOpenSchedules(ctx context.Context) ([]ScheduleInfo, error)
+	ListExpiredReservations(ctx context.Context, now time.Time, limit int) ([]ExpiredReservation, error)
 	GetPromo(ctx context.Context, code string) (*entity.Promo, error)
 	CreateReservation(ctx context.Context, reservation *entity.Reservation, participants []entity.Participant) error
 	GetReservation(ctx context.Context, id uuid.UUID) (*entity.Reservation, error)

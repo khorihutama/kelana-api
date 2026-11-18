@@ -1,6 +1,6 @@
 # HSI GO API
 
-Backend Go untuk HSI GO, aplikasi travel dan itinerary. Fase 0-5 berisi autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, dan payment mock.
+Backend Go untuk HSI GO, aplikasi travel dan itinerary. Fase 0-6 berisi autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, dan my trips dengan expiry job.
 
 ## Stack
 
@@ -50,6 +50,8 @@ Server berjalan di `http://localhost:8080`.
 | `PAYMENT_PROVIDER` | Fase 5 hanya `mock`; adapter Midtrans ada tetapi belum diaktifkan |
 | `MOCK_WEBHOOK_SECRET` | Secret HMAC webhook mock, minimal 16 karakter |
 | `PAYMENT_TTL_SECONDS` | Masa bayar terpisah dari lock, default `86400` detik (24 jam) |
+| `PAYMENT_EXPIRY_INTERVAL_SECONDS` | Interval job expiry payment, default `30` detik |
+| `WA_GROUP_URL` | Fallback link grup WhatsApp; URL per trip (`trips.wa_group_url`) lebih diutamakan |
 
 ## Endpoint
 
@@ -83,6 +85,9 @@ Health tersedia di root (`/healthz`, `/readyz`) dan di `/api/v1`.
 | POST | `/api/v1/reservations/{id}/payments` | Bearer (pemilik) |
 | GET | `/api/v1/payments/{id}` | Bearer (pemilik) |
 | POST | `/api/v1/payments/webhook/{provider}` | Publik + HMAC |
+| GET | `/api/v1/mytrips` | Bearer (hanya milik user) |
+| GET | `/api/v1/mytrips/{id}` | Bearer (pemilik) |
+| POST | `/api/v1/mytrips/{id}/cancel` | Bearer (pemilik) |
 
 Filter `GET /api/v1/trips`: `q`, `category` (OPEN/PRIVATE/EDU), `destination`, `departure`, `date_from`, `date_to`, `price_min_idr`, `price_max_idr`, `sort` (newest/price_asc/price_desc/rating_desc/departure_asc), `page`, `limit` (maks 100). Filter tidak valid menghasilkan 422 dengan envelope standar.
 
@@ -120,9 +125,26 @@ Header `X-Mock-Signature` berisi hex HMAC-SHA256 raw body dengan `MOCK_WEBHOOK_S
 
 `GET /api/v1/payments/{id}` hanya membaca status; tidak pernah mengubahnya. Refund mengembalikan `ErrNotSupported`; belum ada endpoint refund. Adapter Midtrans ada di `internal/infra/payment/midtrans.go` dengan skema signature SHA512 dan mapping status, tetapi tidak didaftarkan di DI.
 
+## My Trips
+
+`GET /api/v1/mytrips?tab=BELUM_BAYAR|SIAP_BERANGKAT|SELESAI|RIWAYAT&page=1&limit=10` hanya mengembalikan reservasi milik user. Tanpa `tab`, semua status dikembalikan. Pemetaan:
+
+| Tab | Status |
+|---|---|
+| `BELUM_BAYAR` | `PENDING_PAYMENT` |
+| `SIAP_BERANGKAT` | `PAID` dengan `end_date >= hari ini` (WIB) |
+| `SELESAI` | `PAID` dengan `end_date < hari ini`, atau `COMPLETED` |
+| `RIWAYAT` | `CANCELLED`, `EXPIRED` |
+
+`GET /api/v1/mytrips/{id}` memuat peserta dan metadata dokumen tanpa signed URL. `join_wa_url` hanya ada jika reservasi `PAID`; status lain tidak memuat field itu sama sekali. `POST /api/v1/mytrips/{id}/cancel` boleh saat `PENDING_PAYMENT`; setelah `PAID` ditolak `409 ALREADY_PAID`.
+
+Job expiry berjalan di background:
+- Reservasi `PENDING_PAYMENT` lewat `lock_expires_at` -> `EXPIRED` dan seat dikembalikan; job idempoten dan memakai query DB sebagai fallback bila zset Redis hilang.
+- Payment `PENDING` lewat `expires_at` -> `EXPIRED`; reservasi yang masih `PENDING_PAYMENT` ikut `EXPIRED`. Payment/reservasi `PAID` tidak pernah disentuh, jadi seat tidak kembali.
+
 ## Status
 
-Fase 0-5 selesai: bootstrap, auth OTP, discovery, booking dengan seat lock Redis dan promo, dokumen terenkripsi, serta payment mock + webhook idempoten. Fase berikutnya (my trips, expiry job penuh) belum diimplementasikan.
+Fase 0-6 selesai: bootstrap, auth OTP, discovery, booking dengan seat lock Redis dan promo, dokumen terenkripsi, payment mock + webhook idempoten, serta my trips + expiry job. Fase berikutnya (hardening) belum diimplementasikan.
 
 ## Lisensi
 

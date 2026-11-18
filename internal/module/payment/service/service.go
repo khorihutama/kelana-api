@@ -24,8 +24,9 @@ type DocumentGate interface {
 }
 
 type Config struct {
-	Provider   string
-	PaymentTTL time.Duration
+	Provider       string
+	PaymentTTL     time.Duration
+	ExpiryInterval time.Duration
 }
 
 type Service struct {
@@ -44,6 +45,9 @@ func New(repo repository.Repository, seats *redis.SeatHoldStore, docs DocumentGa
 	}
 	if cfg.Provider == "" {
 		cfg.Provider = "mock"
+	}
+	if cfg.ExpiryInterval <= 0 {
+		cfg.ExpiryInterval = 30 * time.Second
 	}
 	registry := make(map[string]port.Provider, len(providers))
 	for _, provider := range providers {
@@ -271,6 +275,55 @@ func (s *Service) HandleWebhook(ctx context.Context, providerName string, header
 		}
 	}
 	return nil
+}
+
+// ExpireDue marks due PENDING payments EXPIRED and expires still-locked
+// reservations. Paid reservations are never selected and never lose seats.
+func (s *Service) ExpireDue(ctx context.Context) (int, error) {
+	expired, err := s.repo.ExpireDuePayments(ctx, s.now(), 100)
+	if err != nil {
+		return 0, err
+	}
+	for _, item := range expired {
+		if !item.ReleaseSeat {
+			continue
+		}
+		if _, err := s.seats.Release(ctx, item.ScheduleID, item.ReservationID); err != nil {
+			s.logger.Error("expire payment release seat failed",
+				"reservation_id", item.ReservationID,
+				"schedule_id", item.ScheduleID,
+				"error", err,
+			)
+		}
+	}
+	return len(expired), nil
+}
+
+func (s *Service) StartExpiryJob(ctx context.Context) {
+	if count, err := s.ExpireDue(ctx); err != nil {
+		s.logger.Error("payment expiry initial run failed", "error", err)
+	} else if count > 0 {
+		s.logger.Info("payment expiry job expired payments", "count", count)
+	}
+	ticker := time.NewTicker(s.cfg.ExpiryInterval)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				jobCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+				count, err := s.ExpireDue(jobCtx)
+				cancel()
+				if err != nil {
+					s.logger.Error("payment expiry job failed", "error", err)
+				} else if count > 0 {
+					s.logger.Info("payment expiry job expired payments", "count", count)
+				}
+			}
+		}
+	}()
 }
 
 func (s *Service) Refund(ctx context.Context, providerName, providerRef string, amountIDR int64, reason string) error {

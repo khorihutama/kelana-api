@@ -51,4 +51,5 @@ const (
 	CodeInvalidEvent             = "INVALID_EVENT"
 	CodeAmountMismatch           = "AMOUNT_MISMATCH"
 	CodeRequestTooLarge          = "REQUEST_TOO_LARGE"
+	CodeInvalidStatus            = "INVALID_STATUS"
 )

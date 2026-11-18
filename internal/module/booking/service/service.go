@@ -187,6 +187,9 @@ func (s *Service) Cancel(ctx context.Context, userID, id string) (*dto.Reservati
 	if appErr != nil {
 		return nil, appErr
 	}
+	if reservation.Status == "PAID" {
+		return nil, errs.Conflict(errs.CodeAlreadyPaid, "Reservasi sudah dibayar dan tidak bisa dibatalkan")
+	}
 	if reservation.Status != "PENDING_PAYMENT" {
 		return nil, errs.Conflict(errs.CodeInvalidState, "Reservasi tidak bisa dibatalkan pada status ini")
 	}
@@ -202,18 +205,51 @@ func (s *Service) Cancel(ctx context.Context, userID, id string) (*dto.Reservati
 	return toResponse(reservation), nil
 }
 
+// CancelOnly is the mytrips-facing cancellation contract.
+func (s *Service) CancelOnly(ctx context.Context, userID, id string) error {
+	_, err := s.Cancel(ctx, userID, id)
+	return err
+}
+
 func (s *Service) SweepOnce(ctx context.Context) (int, error) {
-	schedules, err := s.repo.ListOpenSchedules(ctx)
+	expiredCount := 0
+	expiredNow := map[uuid.UUID]struct{}{}
+
+	// DB is the fallback authority when Redis zset data is missing.
+	due, err := s.repo.ListExpiredReservations(ctx, s.now(), 100)
 	if err != nil {
 		return 0, err
 	}
-	expiredCount := 0
+	for _, reservation := range due {
+		changed, err := s.repo.MarkExpired(ctx, reservation.ID)
+		if err != nil {
+			s.logger.Error("mark expired failed", "reservation_id", reservation.ID, "error", err)
+			continue
+		}
+		if !changed {
+			continue
+		}
+		expiredCount++
+		expiredNow[reservation.ID] = struct{}{}
+		if _, err := s.seats.Release(ctx, reservation.ScheduleID, reservation.ID); err != nil {
+			s.logger.Error("release seat failed", "reservation_id", reservation.ID, "error", err)
+		}
+	}
+
+	schedules, err := s.repo.ListOpenSchedules(ctx)
+	if err != nil {
+		return expiredCount, err
+	}
 	for _, schedule := range schedules {
 		ids, err := s.seats.ExpiredHolds(ctx, schedule.ID, 100)
 		if err != nil {
 			return expiredCount, err
 		}
 		for _, id := range ids {
+			if _, justExpired := expiredNow[id]; justExpired {
+				// Do not let the zset pass drop a hold whose DB row was just expired.
+				continue
+			}
 			changed, err := s.repo.MarkExpired(ctx, id)
 			if err != nil {
 				s.logger.Error("mark expired failed", "reservation_id", id, "error", err)

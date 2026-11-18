@@ -47,10 +47,18 @@ type ConfirmOutcome struct {
 	ScheduleID    uuid.UUID
 }
 
+type ExpiredPayment struct {
+	PaymentID     uuid.UUID
+	ReservationID uuid.UUID
+	ScheduleID    uuid.UUID
+	ReleaseSeat   bool
+}
+
 type Repository interface {
 	GetReservationForPayment(ctx context.Context, id uuid.UUID) (*ReservationInfo, error)
 	GetPaymentByID(ctx context.Context, id uuid.UUID) (*entity.Payment, error)
 	GetPaymentByReservation(ctx context.Context, reservationID uuid.UUID) (*entity.Payment, error)
 	CreatePayment(ctx context.Context, payment *entity.Payment, paymentExpiresAt time.Time) error
 	ConfirmWebhook(ctx context.Context, provider string, event *entity.PaymentEvent, now time.Time) (ConfirmOutcome, error)
+	ExpireDuePayments(ctx context.Context, now time.Time, limit int) ([]ExpiredPayment, error)
 }

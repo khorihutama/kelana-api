@@ -2,6 +2,8 @@
 
 Backend Go untuk HSI GO, aplikasi travel dan itinerary: autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, my trips + expiry job, dan hardening (rate limit, CORS, security headers, OpenAPI, CI, load test).
 
+Arsitektur dan diagram alur: [docs/architecture.md](docs/architecture.md).
+
 ## Stack
 
 Go 1.25, Gin, GORM, PostgreSQL 17, Redis 7, goose (migrasi SQL), JWT access token + refresh token HttpOnly.

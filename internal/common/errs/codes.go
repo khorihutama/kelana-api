@@ -40,4 +40,15 @@ const (
 	CodeLockExpired        = "LOCK_EXPIRED"
 	CodeSignatureInvalid   = "SIGNATURE_INVALID"
 	CodeURLExpired         = "URL_EXPIRED"
+
+	CodePaymentExists            = "PAYMENT_EXISTS"
+	CodePaymentMethodUnavailable = "PAYMENT_METHOD_UNAVAILABLE"
+	CodeDocumentsIncomplete      = "DOCUMENTS_INCOMPLETE"
+	CodePaymentNotFound          = "PAYMENT_NOT_FOUND"
+	CodeUnknownPayment           = "UNKNOWN_PAYMENT"
+	CodeUnknownProvider          = "UNKNOWN_PROVIDER"
+	CodeInvalidSignature         = "INVALID_SIGNATURE"
+	CodeInvalidEvent             = "INVALID_EVENT"
+	CodeAmountMismatch           = "AMOUNT_MISMATCH"
+	CodeRequestTooLarge          = "REQUEST_TOO_LARGE"
 )

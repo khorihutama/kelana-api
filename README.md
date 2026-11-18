@@ -1,6 +1,6 @@
 # HSI GO API
 
-Backend Go untuk HSI GO, aplikasi travel dan itinerary. Fase 0-4 berisi autentikasi OTP, discovery trip, booking dengan seat lock Redis, dan dokumen terenkripsi.
+Backend Go untuk HSI GO, aplikasi travel dan itinerary. Fase 0-5 berisi autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, dan payment mock.
 
 ## Stack
 
@@ -47,6 +47,9 @@ Server berjalan di `http://localhost:8080`.
 | `UPLOADS_DIR` | Root data upload; file dokumen masuk ke `<dir>/documents` dan tidak disajikan statis |
 | `DOCUMENT_ENC_KEY` | Base64 32 byte untuk AES-256-GCM; wajib, jangan commit |
 | `DOCUMENT_URL_TTL_SECONDS` | Masa berlaku signed URL, default `300` detik |
+| `PAYMENT_PROVIDER` | Fase 5 hanya `mock`; adapter Midtrans ada tetapi belum diaktifkan |
+| `MOCK_WEBHOOK_SECRET` | Secret HMAC webhook mock, minimal 16 karakter |
+| `PAYMENT_TTL_SECONDS` | Masa bayar terpisah dari lock, default `86400` detik (24 jam) |
 
 ## Endpoint
 
@@ -77,6 +80,9 @@ Health tersedia di root (`/healthz`, `/readyz`) dan di `/api/v1`.
 | GET | `/api/v1/documents/{id}/content?exp=&sig=` | Signed URL |
 | DELETE | `/api/v1/documents/{id}` | Bearer (pemilik) |
 | GET | `/api/v1/reservations/{id}/documents/completeness` | Bearer (pemilik) |
+| POST | `/api/v1/reservations/{id}/payments` | Bearer (pemilik) |
+| GET | `/api/v1/payments/{id}` | Bearer (pemilik) |
+| POST | `/api/v1/payments/webhook/{provider}` | Publik + HMAC |
 
 Filter `GET /api/v1/trips`: `q`, `category` (OPEN/PRIVATE/EDU), `destination`, `departure`, `date_from`, `date_to`, `price_min_idr`, `price_max_idr`, `sort` (newest/price_asc/price_desc/rating_desc/departure_asc), `page`, `limit` (maks 100). Filter tidak valid menghasilkan 422 dengan envelope standar.
 
@@ -100,9 +106,23 @@ make run
 
 `GET /api/v1/documents/{id}/url` mengembalikan signed URL 5 menit. Tanda tangan HMAC-SHA256 mengikat document id dan waktu kedaluwarsa; URL kedaluwarsa ditolak `410 URL_EXPIRED`. Setelah reservasi `PAID`, dokumen tidak bisa dihapus (`409 ALREADY_PAID`).
 
+## Pembayaran mock
+
+`POST /api/v1/reservations/{id}/payments` hanya untuk pemilik, reservasi `PENDING_PAYMENT` yang lock-nya belum lewat, dan seluruh dokumen wajib sudah lengkap. Body: `{"method":"VA_BCA"}` (juga `VA_BSI`, `VA_MANDIRI`, `QRIS`, `CARD`). Respons memuat `amount_idr`, `va_number`/`qr_string`, dan `expires_at` 24 jam.
+
+Webhook mock tidak memakai JWT. Kirim raw body:
+
+```json
+{"event_id":"evt-1","payment_id":"<uuid>","status":"PAID","amount_idr":5900000}
+```
+
+Header `X-Mock-Signature` berisi hex HMAC-SHA256 raw body dengan `MOCK_WEBHOOK_SECRET`. Signature diverifikasi sebelum DB disentuh. Event id unik membuat retry dan 20 request paralel hanya berefek sekali. Webhook valid menandai payment dan reservasi `PAID`, menambah `seats_sold`, dan menghapus hold Redis tanpa mengembalikan seat.
+
+`GET /api/v1/payments/{id}` hanya membaca status; tidak pernah mengubahnya. Refund mengembalikan `ErrNotSupported`; belum ada endpoint refund. Adapter Midtrans ada di `internal/infra/payment/midtrans.go` dengan skema signature SHA512 dan mapping status, tetapi tidak didaftarkan di DI.
+
 ## Status
 
-Fase 0-4 selesai: bootstrap, auth OTP, discovery, booking dengan seat lock Redis dan promo, serta dokumen terenkripsi. Fase berikutnya (payment, my trips) belum diimplementasikan.
+Fase 0-5 selesai: bootstrap, auth OTP, discovery, booking dengan seat lock Redis dan promo, dokumen terenkripsi, serta payment mock + webhook idempoten. Fase berikutnya (my trips, expiry job penuh) belum diimplementasikan.
 
 ## Lisensi
 

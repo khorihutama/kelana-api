@@ -9,6 +9,7 @@ import (
 
 	"github.com/khorihutama/hsi-go-api/internal/config"
 	"github.com/khorihutama/hsi-go-api/internal/infra/mailer"
+	paymentinfra "github.com/khorihutama/hsi-go-api/internal/infra/payment"
 	"github.com/khorihutama/hsi-go-api/internal/infra/ratelimit"
 	redisinfra "github.com/khorihutama/hsi-go-api/internal/infra/redis"
 	"github.com/khorihutama/hsi-go-api/internal/infra/storage"
@@ -24,6 +25,10 @@ import (
 	documentService "github.com/khorihutama/hsi-go-api/internal/module/document/service"
 	healthHandler "github.com/khorihutama/hsi-go-api/internal/module/health/handler"
 	healthService "github.com/khorihutama/hsi-go-api/internal/module/health/service"
+	paymentHandler "github.com/khorihutama/hsi-go-api/internal/module/payment/handler"
+	paymentPort "github.com/khorihutama/hsi-go-api/internal/module/payment/port"
+	paymentRepository "github.com/khorihutama/hsi-go-api/internal/module/payment/repository"
+	paymentService "github.com/khorihutama/hsi-go-api/internal/module/payment/service"
 	tripHandler "github.com/khorihutama/hsi-go-api/internal/module/trip/handler"
 	tripRepository "github.com/khorihutama/hsi-go-api/internal/module/trip/repository"
 	tripService "github.com/khorihutama/hsi-go-api/internal/module/trip/service"
@@ -34,6 +39,7 @@ type Container struct {
 	Trip       *tripHandler.Handler
 	Booking    *bookingHandler.Handler
 	Document   *documentHandler.Handler
+	Payment    *paymentHandler.Handler
 	Health     *healthHandler.Handler
 	Tokens     *authToken.Manager
 	BookingSvc *bookingService.Service
@@ -78,8 +84,16 @@ func Build(cfg *config.Config, logger *slog.Logger, db *gorm.DB, rdb *goredis.Cl
 	}, logger)
 	docH := documentHandler.New(docSvc, limiter)
 
+	paymentRepo := paymentRepository.New(db)
+	paymentSvc := paymentService.New(paymentRepo, seatStore, docSvc,
+		[]paymentPort.Provider{paymentinfra.NewMock(cfg.MockWebhookSecret)},
+		paymentService.Config{Provider: cfg.PaymentProvider, PaymentTTL: cfg.PaymentTTL},
+		logger,
+	)
+	paymentH := paymentHandler.New(paymentSvc, limiter)
+
 	return &Container{
-		Auth: authH, Trip: tripH, Booking: bookingH, Document: docH, Health: healthH,
+		Auth: authH, Trip: tripH, Booking: bookingH, Document: docH, Payment: paymentH, Health: healthH,
 		Tokens: tokens, BookingSvc: bookingSvc,
 	}, nil
 }

@@ -223,7 +223,27 @@ func (s *Service) Completeness(ctx context.Context, userID, reservationID string
 	if reservation == nil || reservation.UserID != ownerID {
 		return nil, errs.NotFound("RESERVATION_NOT_FOUND", "Reservasi tidak ditemukan")
 	}
+	return s.buildCompleteness(ctx, reservation)
+}
 
+// CompleteForReservation is the payment gate. It intentionally skips the owner
+// check: the caller has already authorized the reservation.
+func (s *Service) CompleteForReservation(ctx context.Context, reservationID uuid.UUID) (bool, error) {
+	reservation, err := s.repo.GetReservationContext(ctx, reservationID)
+	if err != nil {
+		return false, errs.Internal(err)
+	}
+	if reservation == nil {
+		return false, errs.NotFound("RESERVATION_NOT_FOUND", "Reservasi tidak ditemukan")
+	}
+	out, err := s.buildCompleteness(ctx, reservation)
+	if err != nil {
+		return false, err
+	}
+	return out.Complete, nil
+}
+
+func (s *Service) buildCompleteness(ctx context.Context, reservation *repository.ReservationContext) (*dto.CompletenessResponse, error) {
 	required := make([]string, 0, len(reservation.RequiredDocuments))
 	for _, docType := range reservation.RequiredDocuments {
 		if _, ok := allowedTypes[docType]; ok {
@@ -234,11 +254,11 @@ func (s *Service) Completeness(ctx context.Context, userID, reservationID string
 		required = []string{"KTP"}
 	}
 
-	participants, err := s.repo.ListParticipants(ctx, reservationUUID)
+	participants, err := s.repo.ListParticipants(ctx, reservation.ReservationID)
 	if err != nil {
 		return nil, errs.Internal(err)
 	}
-	documents, err := s.repo.ListDocuments(ctx, reservationUUID)
+	documents, err := s.repo.ListDocuments(ctx, reservation.ReservationID)
 	if err != nil {
 		return nil, errs.Internal(err)
 	}
@@ -251,7 +271,7 @@ func (s *Service) Completeness(ctx context.Context, userID, reservationID string
 	}
 
 	out := &dto.CompletenessResponse{
-		ReservationID:     reservationUUID.String(),
+		ReservationID:     reservation.ReservationID.String(),
 		RequiredDocuments: required,
 		Complete:          true,
 		Participants:      make([]dto.ParticipantCompleteness, 0, len(participants)),

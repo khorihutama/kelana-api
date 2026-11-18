@@ -26,6 +26,7 @@ type Config struct {
 	CORSOrigins       []string
 	MailDriver        string
 	PaymentProvider   string
+	MockWebhookSecret string
 	StorageDriver     string
 	UploadsDir        string
 	DocumentEncKey    []byte
@@ -38,6 +39,7 @@ type Config struct {
 	SeatHoldSafetyTTL time.Duration
 	SeatSweepInterval time.Duration
 	DocumentURLTTL    time.Duration
+	PaymentTTL        time.Duration
 }
 
 func Load() (*Config, error) {
@@ -61,6 +63,7 @@ func Load() (*Config, error) {
 		CORSOrigins:       splitCSV(getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")),
 		MailDriver:        getenv("MAIL_DRIVER", "mock"),
 		PaymentProvider:   getenv("PAYMENT_PROVIDER", "mock"),
+		MockWebhookSecret: os.Getenv("MOCK_WEBHOOK_SECRET"),
 		StorageDriver:     getenv("STORAGE_DRIVER", "local"),
 		UploadsDir:        getenv("UPLOADS_DIR", "./uploads"),
 		SeedEnabled:       strings.EqualFold(getenv("SEED_ENABLED", "false"), "true"),
@@ -71,6 +74,7 @@ func Load() (*Config, error) {
 		SeatHoldSafetyTTL: time.Duration(envInt("SEAT_HOLD_SAFETY_TTL_SECONDS", 1800)) * time.Second,
 		SeatSweepInterval: time.Duration(envInt("SEAT_SWEEP_INTERVAL_SECONDS", 30)) * time.Second,
 		DocumentURLTTL:    time.Duration(envInt("DOCUMENT_URL_TTL_SECONDS", 300)) * time.Second,
+		PaymentTTL:        time.Duration(envInt("PAYMENT_TTL_SECONDS", 86400)) * time.Second,
 	}
 
 	encKey, err := decodeKey(getenvAny("DOCUMENT_ENC_KEY", "DOC_ENCRYPTION_KEY"))
@@ -96,6 +100,15 @@ func Load() (*Config, error) {
 	}
 	if !strings.EqualFold(cfg.StorageDriver, "local") {
 		return nil, fmt.Errorf("STORAGE_DRIVER %q is not implemented; use local", cfg.StorageDriver)
+	}
+	if !strings.EqualFold(cfg.PaymentProvider, "mock") {
+		return nil, fmt.Errorf("PAYMENT_PROVIDER %q is not implemented; use mock", cfg.PaymentProvider)
+	}
+	if len(cfg.MockWebhookSecret) < 16 {
+		return nil, fmt.Errorf("MOCK_WEBHOOK_SECRET must be at least 16 characters")
+	}
+	if cfg.PaymentTTL <= 0 {
+		return nil, fmt.Errorf("PAYMENT_TTL_SECONDS must be positive")
 	}
 	return cfg, nil
 }

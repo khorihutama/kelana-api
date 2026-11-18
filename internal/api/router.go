@@ -31,6 +31,7 @@ func NewRouter(cfg *config.Config, logger *slog.Logger, container *di.Container)
 	container.Trip.RegisterPath(v1)
 	container.Booking.RegisterPath(v1, authMiddleware)
 	container.Document.RegisterPath(v1, authMiddleware)
+	container.Payment.RegisterPath(v1, authMiddleware)
 
 	return router
 }

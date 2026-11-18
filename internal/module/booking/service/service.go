@@ -381,6 +381,10 @@ func toResponse(reservation *entity.Reservation) *dto.ReservationResponse {
 		promo := reservation.PromoCodeID.String()
 		out.PromoCodeID = &promo
 	}
+	if reservation.PaymentExpiresAt != nil {
+		paymentExpiresAt := reservation.PaymentExpiresAt.UTC().Format(time.RFC3339)
+		out.PaymentExpiresAt = &paymentExpiresAt
+	}
 	for _, participant := range reservation.Participants {
 		out.Participants = append(out.Participants, dto.ParticipantResponse{
 			ID: participant.ID.String(), FullName: participant.FullName,

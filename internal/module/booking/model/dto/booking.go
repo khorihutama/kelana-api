@@ -25,22 +25,23 @@ type ParticipantResponse struct {
 }
 
 type ReservationResponse struct {
-	ID             string                `json:"id"`
-	Code           string                `json:"code"`
-	Status         string                `json:"status"`
-	TripID         string                `json:"trip_id"`
-	ScheduleID     string                `json:"schedule_id"`
-	Participants   []ParticipantResponse `json:"participants"`
-	UnitPriceIDR   int64                 `json:"unit_price_idr"`
-	TotalAmountIDR int64                 `json:"total_amount_idr"`
-	DiscountIDR    int64                 `json:"discount_idr"`
-	Currency       string                `json:"currency"`
-	PickupPoint    string                `json:"pickup_point"`
-	Notes          *string               `json:"notes,omitempty"`
-	HotelID        *string               `json:"hotel_id,omitempty"`
-	PromoCodeID    *string               `json:"promo_code_id,omitempty"`
-	LockExpiresAt  string                `json:"lock_expires_at"`
-	SeatsRemaining int64                 `json:"seats_remaining,omitempty"`
+	ID               string                `json:"id"`
+	Code             string                `json:"code"`
+	Status           string                `json:"status"`
+	TripID           string                `json:"trip_id"`
+	ScheduleID       string                `json:"schedule_id"`
+	Participants     []ParticipantResponse `json:"participants"`
+	UnitPriceIDR     int64                 `json:"unit_price_idr"`
+	TotalAmountIDR   int64                 `json:"total_amount_idr"`
+	DiscountIDR      int64                 `json:"discount_idr"`
+	Currency         string                `json:"currency"`
+	PickupPoint      string                `json:"pickup_point"`
+	Notes            *string               `json:"notes,omitempty"`
+	HotelID          *string               `json:"hotel_id,omitempty"`
+	PromoCodeID      *string               `json:"promo_code_id,omitempty"`
+	LockExpiresAt    string                `json:"lock_expires_at"`
+	PaymentExpiresAt *string               `json:"payment_expires_at,omitempty"`
+	SeatsRemaining   int64                 `json:"seats_remaining,omitempty"`
 }
 
 type LockResponse struct {

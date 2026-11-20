@@ -2,7 +2,7 @@
 
 Backend Go untuk Kelana, aplikasi travel dan itinerary: autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, my trips + expiry job, dan hardening (rate limit, CORS, security headers, OpenAPI, CI, load test).
 
-Arsitektur dan diagram alur: [docs/architecture.md](docs/architecture.md).
+Arsitektur dan diagram alur: [docs/architecture.md](docs/architecture.md). Frontend: [khorihutama/kelana-web](https://github.com/khorihutama/kelana-web).
 
 ## Stack
 
@@ -16,6 +16,8 @@ Go 1.25, Gin, GORM, PostgreSQL 17, Redis 7, goose (migrasi SQL), JWT access toke
 ## Menjalankan
 
 ```bash
+git clone https://github.com/khorihutama/kelana-api.git
+cd kelana-api
 cp .env.example .env          # sesuaikan JWT_SECRET (minimal 32 karakter)
 # Isi DOCUMENT_ENC_KEY dengan base64 dari 32 byte acak: openssl rand -base64 32
 # Jika port 5432 sudah dipakai stack lain, ubah DB_PORT=5433 di .env.

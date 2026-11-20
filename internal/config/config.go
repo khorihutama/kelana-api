@@ -24,6 +24,7 @@ type Config struct {
 	JWTSecret         string
 	RefreshCookieName string
 	CORSOrigins       []string
+	TrustedProxies    []string
 	MailDriver        string
 	PaymentProvider   string
 	MockWebhookSecret string
@@ -64,6 +65,7 @@ func Load() (*Config, error) {
 		JWTSecret:             os.Getenv("JWT_SECRET"),
 		RefreshCookieName:     getenv("REFRESH_COOKIE_NAME", "hsi_refresh"),
 		CORSOrigins:           splitCSV(getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")),
+		TrustedProxies:        splitCSV(getenv("TRUSTED_PROXIES", "127.0.0.1,172.16.0.0/12")),
 		MailDriver:            getenv("MAIL_DRIVER", "mock"),
 		PaymentProvider:       getenv("PAYMENT_PROVIDER", "mock"),
 		MockWebhookSecret:     os.Getenv("MOCK_WEBHOOK_SECRET"),

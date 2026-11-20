@@ -26,7 +26,7 @@ func New(svc *service.Service, limiter *ratelimit.Limiter, cookieName string, se
 }
 
 func (h *Handler) RegisterPath(group *gin.RouterGroup, auth gin.HandlerFunc) {
-	group.POST("/auth/register", middleware.RateLimit(h.limiter, "auth-register", 3, time.Hour), h.register)
+	group.POST("/auth/register", middleware.RateLimitRegister(h.limiter), h.register)
 	group.POST("/auth/verify-email", middleware.RateLimit(h.limiter, "auth-verify", 10, time.Minute), h.verifyEmail)
 	group.POST("/auth/resend-verification", middleware.RateLimit(h.limiter, "auth-resend", 3, time.Hour), h.resendVerification)
 	group.POST("/auth/login", middleware.RateLimit(h.limiter, "auth-login", 5, time.Minute), h.login)

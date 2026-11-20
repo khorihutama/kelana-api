@@ -17,6 +17,10 @@ func NewRouter(cfg *config.Config, logger *slog.Logger, container *di.Container)
 	}
 
 	router := gin.New()
+	if err := router.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+		logger.Error("invalid TRUSTED_PROXIES; no proxy headers will be trusted", "error", err)
+		_ = router.SetTrustedProxies(nil)
+	}
 	router.Use(middleware.RequestID())
 	router.Use(middleware.Recovery(logger))
 	router.Use(middleware.SecurityHeaders())

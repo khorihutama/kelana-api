@@ -1,6 +1,6 @@
-# Arsitektur Backend HSI GO
+# Arsitektur Backend Kelana
 
-Dokumen ini menggambarkan arsitektur dan alur bisnis backend HSI GO sesuai kode di repository. Nama route, key Redis, tabel, dan package diverifikasi langsung dari kode; sumbernya dicantumkan di bagian akhir.
+Dokumen ini menggambarkan arsitektur dan alur bisnis backend Kelana sesuai kode di repository. Nama route, key Redis, tabel, dan package diverifikasi langsung dari kode; sumbernya dicantumkan di bagian akhir.
 
 ## 1. Konteks sistem
 

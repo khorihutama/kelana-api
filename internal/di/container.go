@@ -7,34 +7,34 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/khorihutama/hsi-go-api/internal/config"
-	"github.com/khorihutama/hsi-go-api/internal/infra/mailer"
-	paymentinfra "github.com/khorihutama/hsi-go-api/internal/infra/payment"
-	"github.com/khorihutama/hsi-go-api/internal/infra/ratelimit"
-	redisinfra "github.com/khorihutama/hsi-go-api/internal/infra/redis"
-	"github.com/khorihutama/hsi-go-api/internal/infra/storage"
-	authHandler "github.com/khorihutama/hsi-go-api/internal/module/auth/handler"
-	authRepository "github.com/khorihutama/hsi-go-api/internal/module/auth/repository"
-	authService "github.com/khorihutama/hsi-go-api/internal/module/auth/service"
-	authToken "github.com/khorihutama/hsi-go-api/internal/module/auth/token"
-	bookingHandler "github.com/khorihutama/hsi-go-api/internal/module/booking/handler"
-	bookingRepository "github.com/khorihutama/hsi-go-api/internal/module/booking/repository"
-	bookingService "github.com/khorihutama/hsi-go-api/internal/module/booking/service"
-	documentHandler "github.com/khorihutama/hsi-go-api/internal/module/document/handler"
-	documentRepository "github.com/khorihutama/hsi-go-api/internal/module/document/repository"
-	documentService "github.com/khorihutama/hsi-go-api/internal/module/document/service"
-	healthHandler "github.com/khorihutama/hsi-go-api/internal/module/health/handler"
-	healthService "github.com/khorihutama/hsi-go-api/internal/module/health/service"
-	mytripHandler "github.com/khorihutama/hsi-go-api/internal/module/mytrip/handler"
-	mytripRepository "github.com/khorihutama/hsi-go-api/internal/module/mytrip/repository"
-	mytripService "github.com/khorihutama/hsi-go-api/internal/module/mytrip/service"
-	paymentHandler "github.com/khorihutama/hsi-go-api/internal/module/payment/handler"
-	paymentPort "github.com/khorihutama/hsi-go-api/internal/module/payment/port"
-	paymentRepository "github.com/khorihutama/hsi-go-api/internal/module/payment/repository"
-	paymentService "github.com/khorihutama/hsi-go-api/internal/module/payment/service"
-	tripHandler "github.com/khorihutama/hsi-go-api/internal/module/trip/handler"
-	tripRepository "github.com/khorihutama/hsi-go-api/internal/module/trip/repository"
-	tripService "github.com/khorihutama/hsi-go-api/internal/module/trip/service"
+	"github.com/khorihutama/kelana-api/internal/config"
+	"github.com/khorihutama/kelana-api/internal/infra/mailer"
+	paymentinfra "github.com/khorihutama/kelana-api/internal/infra/payment"
+	"github.com/khorihutama/kelana-api/internal/infra/ratelimit"
+	redisinfra "github.com/khorihutama/kelana-api/internal/infra/redis"
+	"github.com/khorihutama/kelana-api/internal/infra/storage"
+	authHandler "github.com/khorihutama/kelana-api/internal/module/auth/handler"
+	authRepository "github.com/khorihutama/kelana-api/internal/module/auth/repository"
+	authService "github.com/khorihutama/kelana-api/internal/module/auth/service"
+	authToken "github.com/khorihutama/kelana-api/internal/module/auth/token"
+	bookingHandler "github.com/khorihutama/kelana-api/internal/module/booking/handler"
+	bookingRepository "github.com/khorihutama/kelana-api/internal/module/booking/repository"
+	bookingService "github.com/khorihutama/kelana-api/internal/module/booking/service"
+	documentHandler "github.com/khorihutama/kelana-api/internal/module/document/handler"
+	documentRepository "github.com/khorihutama/kelana-api/internal/module/document/repository"
+	documentService "github.com/khorihutama/kelana-api/internal/module/document/service"
+	healthHandler "github.com/khorihutama/kelana-api/internal/module/health/handler"
+	healthService "github.com/khorihutama/kelana-api/internal/module/health/service"
+	mytripHandler "github.com/khorihutama/kelana-api/internal/module/mytrip/handler"
+	mytripRepository "github.com/khorihutama/kelana-api/internal/module/mytrip/repository"
+	mytripService "github.com/khorihutama/kelana-api/internal/module/mytrip/service"
+	paymentHandler "github.com/khorihutama/kelana-api/internal/module/payment/handler"
+	paymentPort "github.com/khorihutama/kelana-api/internal/module/payment/port"
+	paymentRepository "github.com/khorihutama/kelana-api/internal/module/payment/repository"
+	paymentService "github.com/khorihutama/kelana-api/internal/module/payment/service"
+	tripHandler "github.com/khorihutama/kelana-api/internal/module/trip/handler"
+	tripRepository "github.com/khorihutama/kelana-api/internal/module/trip/repository"
+	tripService "github.com/khorihutama/kelana-api/internal/module/trip/service"
 )
 
 type Container struct {
@@ -53,7 +53,7 @@ type Container struct {
 func Build(cfg *config.Config, logger *slog.Logger, db *gorm.DB, rdb *goredis.Client) (*Container, error) {
 	limiter := ratelimit.New(rdb)
 	mockMailer := mailer.NewMock(logger)
-	tokens := authToken.New(cfg.JWTSecret, cfg.AccessTokenTTL)
+	tokens := authToken.New(cfg.JWTSecret, cfg.AccessTokenTTL, cfg.JWTIssuer, cfg.JWTAudience)
 
 	authRepo := authRepository.New(db)
 	authSvc := authService.New(authRepo, tokens, mockMailer, authService.Config{
@@ -76,6 +76,7 @@ func Build(cfg *config.Config, logger *slog.Logger, db *gorm.DB, rdb *goredis.Cl
 		SeatLockTTL:       cfg.SeatLockTTL,
 		SeatHoldSafetyTTL: cfg.SeatHoldSafetyTTL,
 		SeatSweepInterval: cfg.SeatSweepInterval,
+		CodePrefix:        cfg.BrandCodePrefix,
 	}, logger)
 	bookingH := bookingHandler.New(bookingSvc, limiter)
 
@@ -91,11 +92,12 @@ func Build(cfg *config.Config, logger *slog.Logger, db *gorm.DB, rdb *goredis.Cl
 
 	paymentRepo := paymentRepository.New(db)
 	paymentSvc := paymentService.New(paymentRepo, seatStore, docSvc,
-		[]paymentPort.Provider{paymentinfra.NewMock(cfg.MockWebhookSecret)},
+		[]paymentPort.Provider{paymentinfra.NewMock(cfg.MockWebhookSecret, cfg.BrandMerchantName)},
 		paymentService.Config{
 			Provider:       cfg.PaymentProvider,
 			PaymentTTL:     cfg.PaymentTTL,
 			ExpiryInterval: cfg.PaymentExpiryInterval,
+			BrandName:      cfg.BrandName,
 		},
 		logger,
 	)

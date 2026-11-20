@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
 )
 
 func TestSignerValidSignature(t *testing.T) {

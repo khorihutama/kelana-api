@@ -3,14 +3,14 @@ package service
 import (
 	"context"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/dto"
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/common/util"
-	"github.com/khorihutama/hsi-go-api/internal/module/trip/model/domain"
-	tripdto "github.com/khorihutama/hsi-go-api/internal/module/trip/model/dto"
-	"github.com/khorihutama/hsi-go-api/internal/module/trip/model/entity"
-	"github.com/khorihutama/hsi-go-api/internal/module/trip/model/query"
-	"github.com/khorihutama/hsi-go-api/internal/module/trip/repository"
+	"github.com/khorihutama/kelana-api/internal/common/dto"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/common/util"
+	"github.com/khorihutama/kelana-api/internal/module/trip/model/domain"
+	tripdto "github.com/khorihutama/kelana-api/internal/module/trip/model/dto"
+	"github.com/khorihutama/kelana-api/internal/module/trip/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/trip/model/query"
+	"github.com/khorihutama/kelana-api/internal/module/trip/repository"
 )
 
 type Service struct {

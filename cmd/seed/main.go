@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 
-	"github.com/khorihutama/hsi-go-api/internal/config"
-	"github.com/khorihutama/hsi-go-api/internal/infra/database"
+	"github.com/khorihutama/kelana-api/internal/config"
+	"github.com/khorihutama/kelana-api/internal/infra/database"
 )
 
 type tripSeed struct {
@@ -155,18 +155,18 @@ func main() {
 		}
 	}
 
-	promoID := uuid.NewSHA1(uuid.NameSpaceOID, []byte("promo:HSIGO2025"))
+	promoID := uuid.NewSHA1(uuid.NameSpaceOID, []byte("promo:KELANA2025"))
 	err = db.Exec(`
 		INSERT INTO promo_codes (id, code, discount_type, discount_value, min_transaction_idr,
 			quota, used_count, valid_from, valid_to, active)
-		VALUES (?, 'HSIGO2025', 'PERCENT', 1000, 1000000, 100, 0, ?, ?, true)
+		VALUES (?, 'KELANA2025', 'PERCENT', 1000, 1000000, 100, 0, ?, ?, true)
 		ON CONFLICT (code) DO NOTHING
 	`, promoID, date(2026, 1, 1), date(2027, 12, 31)).Error
 	if err != nil {
 		log.Fatalf("seed promo: %v", err)
 	}
 
-	log.Printf("seed completed: %d trips, 2 schedules each, itineraries, facilities, hotels, promo HSIGO2025", len(trips))
+	log.Printf("seed completed: %d trips, 2 schedules each, itineraries, facilities, hotels, promo KELANA2025", len(trips))
 }
 
 func tripSeeds() []tripSeed {

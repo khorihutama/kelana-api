@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/mytrip/repository"
+	"github.com/khorihutama/kelana-api/internal/module/mytrip/repository"
 )
 
 func TestTabFor(t *testing.T) {

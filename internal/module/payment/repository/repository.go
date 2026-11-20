@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/payment/model/entity"
 )
 
 var (

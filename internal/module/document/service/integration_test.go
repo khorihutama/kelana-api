@@ -20,11 +20,11 @@ import (
 	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/config"
-	"github.com/khorihutama/hsi-go-api/internal/infra/database"
-	"github.com/khorihutama/hsi-go-api/internal/infra/storage"
-	documentrepo "github.com/khorihutama/hsi-go-api/internal/module/document/repository"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/config"
+	"github.com/khorihutama/kelana-api/internal/infra/database"
+	"github.com/khorihutama/kelana-api/internal/infra/storage"
+	documentrepo "github.com/khorihutama/kelana-api/internal/module/document/repository"
 )
 
 type documentFixture struct {
@@ -92,7 +92,7 @@ func newDocumentFixture(t *testing.T) *documentFixture {
 		INSERT INTO reservations (id, code, user_id, trip_id, schedule_id, status, participants_count,
 			unit_price_idr, total_amount_idr, discount_idr, currency, pickup_point, lock_expires_at)
 		VALUES (?, ?, ?, ?, ?, 'PENDING_PAYMENT', 2, 1000000, 2000000, 0, 'IDR', 'Jakarta Pusat', ?)
-	`, reservationID, "HSI-DOC-"+suffix, userID, tripID, scheduleID, time.Now().UTC().Add(15*time.Minute)).Error; err != nil {
+	`, reservationID, "KLN-DOC-"+suffix, userID, tripID, scheduleID, time.Now().UTC().Add(15*time.Minute)).Error; err != nil {
 		t.Fatalf("insert reservation: %v", err)
 	}
 	for i, participantID := range []uuid.UUID{participantA, participantB} {

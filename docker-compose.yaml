@@ -1,27 +1,27 @@
-name: hsi-go-api
+name: kelana-api
 
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: hsi-go-api-postgres
+    container_name: kelana-api-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_DATABASE:-hsi_go_api}
-      POSTGRES_USER: ${DB_USERNAME:-hsi}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-hsi}
+      POSTGRES_DB: ${DB_DATABASE:-kelana_api}
+      POSTGRES_USER: ${DB_USERNAME:-kelana}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-kelana}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-hsi} -d ${DB_DATABASE:-hsi_go_api}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-kelana} -d ${DB_DATABASE:-kelana_api}"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: hsi-go-api-redis
+    container_name: kelana-api-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:

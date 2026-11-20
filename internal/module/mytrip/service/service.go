@@ -8,10 +8,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/common/util"
-	"github.com/khorihutama/hsi-go-api/internal/module/mytrip/model/dto"
-	"github.com/khorihutama/hsi-go-api/internal/module/mytrip/repository"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/common/util"
+	"github.com/khorihutama/kelana-api/internal/module/mytrip/model/dto"
+	"github.com/khorihutama/kelana-api/internal/module/mytrip/repository"
 )
 
 var wib = time.FixedZone("WIB", 7*3600)

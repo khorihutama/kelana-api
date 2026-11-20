@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/port"
+	"github.com/khorihutama/kelana-api/internal/module/payment/port"
 )
 
 func TestMidtransSignatureAndMapping(t *testing.T) {

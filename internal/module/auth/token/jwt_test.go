@@ -8,7 +8,7 @@ import (
 )
 
 func TestGenerateAndParse(t *testing.T) {
-	manager := New("01234567890123456789012345678901", 15*time.Minute)
+	manager := New("01234567890123456789012345678901", 15*time.Minute, "kelana", "kelana-api")
 	userID := uuid.Must(uuid.NewV7())
 	sessionID := uuid.Must(uuid.NewV7())
 
@@ -30,8 +30,8 @@ func TestGenerateAndParse(t *testing.T) {
 }
 
 func TestParseRejectsWrongSecretAndExpiredToken(t *testing.T) {
-	issuer := New("01234567890123456789012345678901", 15*time.Minute)
-	other := New("abcdefghijklmnopqrstuvwxyz123456", 15*time.Minute)
+	issuer := New("01234567890123456789012345678901", 15*time.Minute, "kelana", "kelana-api")
+	other := New("abcdefghijklmnopqrstuvwxyz123456", 15*time.Minute, "kelana", "kelana-api")
 	raw, _, err := issuer.Generate(uuid.Must(uuid.NewV7()), "CUSTOMER", uuid.Must(uuid.NewV7()))
 	if err != nil {
 		t.Fatal(err)
@@ -40,7 +40,7 @@ func TestParseRejectsWrongSecretAndExpiredToken(t *testing.T) {
 		t.Fatal("expected wrong secret to be rejected")
 	}
 
-	expired := New("01234567890123456789012345678901", -time.Second)
+	expired := New("01234567890123456789012345678901", -time.Second, "kelana", "kelana-api")
 	rawExpired, _, err := expired.Generate(uuid.Must(uuid.NewV7()), "CUSTOMER", uuid.Must(uuid.NewV7()))
 	if err != nil {
 		t.Fatal(err)

@@ -21,13 +21,13 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/config"
-	"github.com/khorihutama/hsi-go-api/internal/infra/database"
-	paymentinfra "github.com/khorihutama/hsi-go-api/internal/infra/payment"
-	redisinfra "github.com/khorihutama/hsi-go-api/internal/infra/redis"
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/port"
-	paymentrepo "github.com/khorihutama/hsi-go-api/internal/module/payment/repository"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/config"
+	"github.com/khorihutama/kelana-api/internal/infra/database"
+	paymentinfra "github.com/khorihutama/kelana-api/internal/infra/payment"
+	redisinfra "github.com/khorihutama/kelana-api/internal/infra/redis"
+	"github.com/khorihutama/kelana-api/internal/module/payment/port"
+	paymentrepo "github.com/khorihutama/kelana-api/internal/module/payment/repository"
 )
 
 const testWebhookSecret = "integration-secret-123456"
@@ -70,7 +70,7 @@ func newPaymentFixture(t *testing.T, docsComplete bool) *paymentFixture {
 	seatStore := redisinfra.NewSeatHoldStore(rdb)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := New(paymentrepo.New(db), seatStore, stubDocumentGate{complete: docsComplete},
-		[]port.Provider{paymentinfra.NewMock(testWebhookSecret)},
+		[]port.Provider{paymentinfra.NewMock(testWebhookSecret, "KELANA")},
 		Config{Provider: "mock", PaymentTTL: 24 * time.Hour}, logger)
 
 	suffix := uuid.NewString()[:8]
@@ -105,7 +105,7 @@ func newPaymentFixture(t *testing.T, docsComplete bool) *paymentFixture {
 		INSERT INTO reservations (id, code, user_id, trip_id, schedule_id, status, participants_count,
 			unit_price_idr, total_amount_idr, discount_idr, currency, pickup_point, lock_expires_at)
 		VALUES (?, ?, ?, ?, ?, 'PENDING_PAYMENT', 2, 2950000, 5900000, 0, 'IDR', 'Jakarta Pusat', ?)
-	`, reservationID, "HSI-PAY-"+suffix, userID, tripID, scheduleID, time.Now().UTC().Add(15*time.Minute)).Error; err != nil {
+	`, reservationID, "KLN-PAY-"+suffix, userID, tripID, scheduleID, time.Now().UTC().Add(15*time.Minute)).Error; err != nil {
 		t.Fatalf("insert reservation: %v", err)
 	}
 	for i := 0; i < 2; i++ {

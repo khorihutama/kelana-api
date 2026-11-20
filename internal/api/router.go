@@ -6,9 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/khorihutama/hsi-go-api/internal/api/middleware"
-	"github.com/khorihutama/hsi-go-api/internal/config"
-	"github.com/khorihutama/hsi-go-api/internal/di"
+	"github.com/khorihutama/kelana-api/internal/api/middleware"
+	"github.com/khorihutama/kelana-api/internal/config"
+	"github.com/khorihutama/kelana-api/internal/di"
 )
 
 func NewRouter(cfg *config.Config, logger *slog.Logger, container *di.Container) *gin.Engine {

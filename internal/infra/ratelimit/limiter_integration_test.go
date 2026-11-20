@@ -10,8 +10,8 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/khorihutama/hsi-go-api/internal/config"
-	redisinfra "github.com/khorihutama/hsi-go-api/internal/infra/redis"
+	"github.com/khorihutama/kelana-api/internal/config"
+	redisinfra "github.com/khorihutama/kelana-api/internal/infra/redis"
 )
 
 func TestIntegrationLimiterSharedAcrossInstances(t *testing.T) {

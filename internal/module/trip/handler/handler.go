@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/dto"
-	"github.com/khorihutama/hsi-go-api/internal/module/trip/model/query"
-	"github.com/khorihutama/hsi-go-api/internal/module/trip/service"
+	"github.com/khorihutama/kelana-api/internal/common/dto"
+	"github.com/khorihutama/kelana-api/internal/module/trip/model/query"
+	"github.com/khorihutama/kelana-api/internal/module/trip/service"
 )
 
 type Handler struct {

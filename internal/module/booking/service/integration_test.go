@@ -16,12 +16,12 @@ import (
 	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/config"
-	"github.com/khorihutama/hsi-go-api/internal/infra/database"
-	redisinfra "github.com/khorihutama/hsi-go-api/internal/infra/redis"
-	"github.com/khorihutama/hsi-go-api/internal/module/booking/model/dto"
-	bookingrepo "github.com/khorihutama/hsi-go-api/internal/module/booking/repository"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/config"
+	"github.com/khorihutama/kelana-api/internal/infra/database"
+	redisinfra "github.com/khorihutama/kelana-api/internal/infra/redis"
+	"github.com/khorihutama/kelana-api/internal/module/booking/model/dto"
+	bookingrepo "github.com/khorihutama/kelana-api/internal/module/booking/repository"
 )
 
 type fixture struct {

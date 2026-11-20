@@ -15,13 +15,13 @@ import (
 	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/config"
-	"github.com/khorihutama/hsi-go-api/internal/infra/database"
-	redisinfra "github.com/khorihutama/hsi-go-api/internal/infra/redis"
-	bookingrepo "github.com/khorihutama/hsi-go-api/internal/module/booking/repository"
-	bookingsvc "github.com/khorihutama/hsi-go-api/internal/module/booking/service"
-	mytriprepo "github.com/khorihutama/hsi-go-api/internal/module/mytrip/repository"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/config"
+	"github.com/khorihutama/kelana-api/internal/infra/database"
+	redisinfra "github.com/khorihutama/kelana-api/internal/infra/redis"
+	bookingrepo "github.com/khorihutama/kelana-api/internal/module/booking/repository"
+	bookingsvc "github.com/khorihutama/kelana-api/internal/module/booking/service"
+	mytriprepo "github.com/khorihutama/kelana-api/internal/module/mytrip/repository"
 )
 
 type myTripFixture struct {

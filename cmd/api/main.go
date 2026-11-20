@@ -9,13 +9,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/khorihutama/hsi-go-api/internal/api"
-	"github.com/khorihutama/hsi-go-api/internal/config"
-	"github.com/khorihutama/hsi-go-api/internal/di"
-	"github.com/khorihutama/hsi-go-api/internal/infra/database"
-	"github.com/khorihutama/hsi-go-api/internal/infra/logging"
-	redisinfra "github.com/khorihutama/hsi-go-api/internal/infra/redis"
-	"github.com/khorihutama/hsi-go-api/internal/server"
+	"github.com/khorihutama/kelana-api/internal/api"
+	"github.com/khorihutama/kelana-api/internal/config"
+	"github.com/khorihutama/kelana-api/internal/di"
+	"github.com/khorihutama/kelana-api/internal/infra/database"
+	"github.com/khorihutama/kelana-api/internal/infra/logging"
+	redisinfra "github.com/khorihutama/kelana-api/internal/infra/redis"
+	"github.com/khorihutama/kelana-api/internal/server"
 )
 
 func main() {

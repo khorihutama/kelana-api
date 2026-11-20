@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
 )
 
 type Meta struct {

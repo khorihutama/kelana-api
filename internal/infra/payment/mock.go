@@ -16,19 +16,23 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/port"
+	"github.com/khorihutama/kelana-api/internal/module/payment/port"
 )
 
 const SignatureHeader = "X-Mock-Signature"
 
 type Mock struct {
-	secret []byte
-	mu     sync.Mutex
-	seq    uint64
+	secret   []byte
+	merchant string
+	mu       sync.Mutex
+	seq      uint64
 }
 
-func NewMock(secret string) *Mock {
-	return &Mock{secret: []byte(secret)}
+func NewMock(secret, merchant string) *Mock {
+	if strings.TrimSpace(merchant) == "" {
+		merchant = "KELANA"
+	}
+	return &Mock{secret: []byte(secret), merchant: strings.ToUpper(strings.TrimSpace(merchant))}
 }
 
 func (m *Mock) Name() string { return "mock" }
@@ -45,8 +49,8 @@ func (m *Mock) CreateCharge(ctx context.Context, req port.ChargeRequest) (port.C
 	case port.MethodVABCA, port.MethodVABSI, port.MethodVAMandiri:
 		charge.VANumber = m.vaNumber()
 	case port.MethodQRIS:
-		charge.QRString = fmt.Sprintf("00020101021226%04dID.MOCK.%s5204000053033605802ID5910HSI%%20GO6007JAKARTA6304%s",
-			len(req.PaymentID.String()), req.PaymentID.String(), m.checksum(req.PaymentID.String()))
+		charge.QRString = fmt.Sprintf("00020101021226%04dID.MOCK.%s5204000053033605802ID59%02d%s6007JAKARTA6304%s",
+			len(req.PaymentID.String()), req.PaymentID.String(), len(m.merchant), m.merchant, m.checksum(req.PaymentID.String()))
 	case port.MethodCard:
 		// Mock does not emulate a card processor; the payment can still be settled
 		// through a signed mock webhook.

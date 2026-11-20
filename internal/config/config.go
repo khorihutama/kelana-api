@@ -22,6 +22,11 @@ type Config struct {
 	DBSchema          string
 	RedisAddr         string
 	JWTSecret         string
+	JWTIssuer         string
+	JWTAudience       string
+	BrandName         string
+	BrandCodePrefix   string
+	BrandMerchantName string
 	RefreshCookieName string
 	CORSOrigins       []string
 	TrustedProxies    []string
@@ -57,13 +62,18 @@ func Load() (*Config, error) {
 		RestPort:              getenv("REST_PORT", "8080"),
 		DBHost:                getenv("DB_HOST", "localhost"),
 		DBPort:                getenv("DB_PORT", "5432"),
-		DBName:                getenv("DB_DATABASE", "hsi_go_api"),
-		DBUser:                getenv("DB_USERNAME", "hsi"),
-		DBPass:                getenv("DB_PASSWORD", "hsi"),
+		DBName:                getenv("DB_DATABASE", "kelana_api"),
+		DBUser:                getenv("DB_USERNAME", "kelana"),
+		DBPass:                getenv("DB_PASSWORD", "kelana"),
 		DBSchema:              getenv("DB_SCHEMA", "public"),
 		RedisAddr:             getenv("REDIS_ADDR", "localhost:6379"),
 		JWTSecret:             os.Getenv("JWT_SECRET"),
-		RefreshCookieName:     getenv("REFRESH_COOKIE_NAME", "hsi_refresh"),
+		JWTIssuer:             getenv("JWT_ISSUER", "kelana"),
+		JWTAudience:           getenv("JWT_AUDIENCE", "kelana-api"),
+		BrandName:             getenv("BRAND_NAME", "Kelana"),
+		BrandCodePrefix:       strings.ToUpper(getenv("BRAND_CODE_PREFIX", "KLN")),
+		BrandMerchantName:     strings.ToUpper(getenv("BRAND_MERCHANT_NAME", "KELANA")),
+		RefreshCookieName:     getenv("REFRESH_COOKIE_NAME", "kelana_refresh"),
 		CORSOrigins:           splitCSV(getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")),
 		TrustedProxies:        splitCSV(getenv("TRUSTED_PROXIES", "127.0.0.1,172.16.0.0/12")),
 		MailDriver:            getenv("MAIL_DRIVER", "mock"),
@@ -96,6 +106,12 @@ func Load() (*Config, error) {
 	}
 	if cfg.RefreshCookieName == "" {
 		return nil, fmt.Errorf("REFRESH_COOKIE_NAME is required")
+	}
+	if cfg.JWTIssuer == "" || cfg.JWTAudience == "" {
+		return nil, fmt.Errorf("JWT_ISSUER and JWT_AUDIENCE are required")
+	}
+	if cfg.BrandName == "" || cfg.BrandCodePrefix == "" || cfg.BrandMerchantName == "" {
+		return nil, fmt.Errorf("BRAND_NAME, BRAND_CODE_PREFIX and BRAND_MERCHANT_NAME are required")
 	}
 	if cfg.SeatLockTTL <= 0 || cfg.SeatSweepInterval <= 0 {
 		return nil, fmt.Errorf("SEAT_LOCK_TTL_SECONDS and SEAT_SWEEP_INTERVAL_SECONDS must be positive")

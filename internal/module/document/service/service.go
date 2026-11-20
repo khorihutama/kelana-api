@@ -13,10 +13,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/module/document/model/dto"
-	"github.com/khorihutama/hsi-go-api/internal/module/document/model/entity"
-	"github.com/khorihutama/hsi-go-api/internal/module/document/repository"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/module/document/model/dto"
+	"github.com/khorihutama/kelana-api/internal/module/document/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/document/repository"
 )
 
 const maxDocumentBytes int64 = 3 * 1024 * 1024

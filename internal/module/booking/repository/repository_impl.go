@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/booking/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/booking/model/entity"
 )
 
 var ErrActiveReservation = errors.New("active reservation already exists")

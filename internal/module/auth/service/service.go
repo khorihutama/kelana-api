@@ -17,12 +17,12 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/infra/mailer"
-	"github.com/khorihutama/hsi-go-api/internal/module/auth/model/dto"
-	"github.com/khorihutama/hsi-go-api/internal/module/auth/model/entity"
-	"github.com/khorihutama/hsi-go-api/internal/module/auth/repository"
-	"github.com/khorihutama/hsi-go-api/internal/module/auth/token"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/infra/mailer"
+	"github.com/khorihutama/kelana-api/internal/module/auth/model/dto"
+	"github.com/khorihutama/kelana-api/internal/module/auth/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/auth/repository"
+	"github.com/khorihutama/kelana-api/internal/module/auth/token"
 )
 
 type Config struct {

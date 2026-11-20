@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	redisinfra "github.com/khorihutama/hsi-go-api/internal/infra/redis"
+	redisinfra "github.com/khorihutama/kelana-api/internal/infra/redis"
 )
 
 func TestIntegrationPaymentExpiryReleasesSeatOnce(t *testing.T) {

@@ -1,10 +1,10 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "HSI GO API",
+    "title": "Kelana API",
     "version": "1.0.0",
-    "description": "Backend HSI GO: auth OTP, discovery, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, dan my trips.",
-    "contact": { "name": "HSI GO" },
+    "description": "Backend Kelana: auth OTP, discovery, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, dan my trips.",
+    "contact": { "name": "Kelana" },
     "license": { "name": "Proprietary", "identifier": "LicenseRef-Proprietary" }
   },
   "servers": [
@@ -581,7 +581,7 @@
   "components": {
     "securitySchemes": {
       "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
-      "cookieAuth": { "type": "apiKey", "in": "cookie", "name": "hsi_refresh" }
+      "cookieAuth": { "type": "apiKey", "in": "cookie", "name": "kelana_refresh" }
     },
     "parameters": {
       "IdempotentId": {

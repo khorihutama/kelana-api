@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/booking/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/booking/model/entity"
 )
 
 type ScheduleInfo struct {

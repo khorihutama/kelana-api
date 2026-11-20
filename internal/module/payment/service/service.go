@@ -11,12 +11,12 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/infra/redis"
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/model/dto"
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/model/entity"
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/port"
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/repository"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/infra/redis"
+	"github.com/khorihutama/kelana-api/internal/module/payment/model/dto"
+	"github.com/khorihutama/kelana-api/internal/module/payment/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/payment/port"
+	"github.com/khorihutama/kelana-api/internal/module/payment/repository"
 )
 
 type DocumentGate interface {
@@ -27,6 +27,7 @@ type Config struct {
 	Provider       string
 	PaymentTTL     time.Duration
 	ExpiryInterval time.Duration
+	BrandName      string
 }
 
 type Service struct {
@@ -48,6 +49,9 @@ func New(repo repository.Repository, seats *redis.SeatHoldStore, docs DocumentGa
 	}
 	if cfg.ExpiryInterval <= 0 {
 		cfg.ExpiryInterval = 30 * time.Second
+	}
+	if cfg.BrandName == "" {
+		cfg.BrandName = "Kelana"
 	}
 	registry := make(map[string]port.Provider, len(providers))
 	for _, provider := range providers {
@@ -136,7 +140,7 @@ func (s *Service) Create(ctx context.Context, userID, reservationID, method stri
 		ReservationCode: reservation.Code,
 		AmountIDR:       reservation.TotalAmountIDR,
 		Method:          port.Method(method),
-		Description:     "HSI GO " + reservation.Code,
+		Description:     s.cfg.BrandName + " " + reservation.Code,
 	})
 	if err != nil {
 		if errors.Is(err, port.ErrNotSupported) {

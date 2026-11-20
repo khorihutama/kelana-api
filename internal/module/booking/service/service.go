@@ -10,17 +10,18 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/infra/redis"
-	"github.com/khorihutama/hsi-go-api/internal/module/booking/model/dto"
-	"github.com/khorihutama/hsi-go-api/internal/module/booking/model/entity"
-	"github.com/khorihutama/hsi-go-api/internal/module/booking/repository"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/infra/redis"
+	"github.com/khorihutama/kelana-api/internal/module/booking/model/dto"
+	"github.com/khorihutama/kelana-api/internal/module/booking/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/booking/repository"
 )
 
 type Config struct {
 	SeatLockTTL       time.Duration
 	SeatHoldSafetyTTL time.Duration
 	SeatSweepInterval time.Duration
+	CodePrefix        string
 }
 
 type Service struct {
@@ -34,6 +35,9 @@ type Service struct {
 func New(repo repository.Repository, seats *redis.SeatHoldStore, cfg Config, logger *slog.Logger) *Service {
 	if cfg.SeatHoldSafetyTTL <= cfg.SeatLockTTL {
 		cfg.SeatHoldSafetyTTL = cfg.SeatLockTTL * 2
+	}
+	if cfg.CodePrefix == "" {
+		cfg.CodePrefix = "KLN"
 	}
 	return &Service{
 		repo:   repo,
@@ -101,7 +105,7 @@ func (s *Service) Lock(ctx context.Context, userID string, req dto.LockRequest) 
 	}
 
 	reservationID := uuid.Must(uuid.NewV7())
-	reservationCode := "HSI-" + strings.ToUpper(strings.ReplaceAll(uuid.NewString(), "-", "")[:10])
+	reservationCode := s.cfg.CodePrefix + "-" + strings.ToUpper(strings.ReplaceAll(uuid.NewString(), "-", "")[:10])
 	lockExpiresAt := s.now().Add(s.cfg.SeatLockTTL)
 
 	remaining, err := s.seats.Lock(ctx, scheduleID, reservationID, count, s.cfg.SeatLockTTL, s.cfg.SeatHoldSafetyTTL)

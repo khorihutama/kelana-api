@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/common/util"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/common/util"
 )
 
 var allowedSorts = map[string]string{

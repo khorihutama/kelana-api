@@ -33,13 +33,13 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: hsi_go_api
-          POSTGRES_USER: hsi
-          POSTGRES_PASSWORD: hsi
+          POSTGRES_DB: kelana_api
+          POSTGRES_USER: kelana
+          POSTGRES_PASSWORD: kelana
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U hsi -d hsi_go_api"
+          --health-cmd "pg_isready -U kelana -d kelana_api"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
@@ -56,13 +56,13 @@ jobs:
       APP_ENV: test
       DB_HOST: localhost
       DB_PORT: "5432"
-      DB_DATABASE: hsi_go_api
-      DB_USERNAME: hsi
-      DB_PASSWORD: hsi
+      DB_DATABASE: kelana_api
+      DB_USERNAME: kelana
+      DB_PASSWORD: kelana
       DB_SCHEMA: public
       REDIS_ADDR: localhost:6379
       JWT_SECRET: ci-jwt-secret-that-is-at-least-32-chars
-      REFRESH_COOKIE_NAME: hsi_refresh
+      REFRESH_COOKIE_NAME: kelana_refresh
       CORS_ORIGINS: http://localhost:3000
       MAIL_DRIVER: mock
       PAYMENT_PROVIDER: mock

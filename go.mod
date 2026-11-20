@@ -1,4 +1,4 @@
-module github.com/khorihutama/hsi-go-api
+module github.com/khorihutama/kelana-api
 
 go 1.25
 

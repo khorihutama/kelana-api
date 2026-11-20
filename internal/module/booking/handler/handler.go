@@ -6,12 +6,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/khorihutama/hsi-go-api/internal/api/middleware"
-	"github.com/khorihutama/hsi-go-api/internal/common/dto"
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/infra/ratelimit"
-	bookingdto "github.com/khorihutama/hsi-go-api/internal/module/booking/model/dto"
-	"github.com/khorihutama/hsi-go-api/internal/module/booking/service"
+	"github.com/khorihutama/kelana-api/internal/api/middleware"
+	"github.com/khorihutama/kelana-api/internal/common/dto"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/infra/ratelimit"
+	bookingdto "github.com/khorihutama/kelana-api/internal/module/booking/model/dto"
+	"github.com/khorihutama/kelana-api/internal/module/booking/service"
 )
 
 type Handler struct {

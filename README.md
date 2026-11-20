@@ -1,6 +1,6 @@
-# HSI GO API
+# Kelana API
 
-Backend Go untuk HSI GO, aplikasi travel dan itinerary: autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, my trips + expiry job, dan hardening (rate limit, CORS, security headers, OpenAPI, CI, load test).
+Backend Go untuk Kelana, aplikasi travel dan itinerary: autentikasi OTP, discovery trip, booking dengan seat lock Redis, dokumen terenkripsi, payment mock, my trips + expiry job, dan hardening (rate limit, CORS, security headers, OpenAPI, CI, load test).
 
 Arsitektur dan diagram alur: [docs/architecture.md](docs/architecture.md).
 
@@ -38,7 +38,11 @@ Tanpa `make` pun jalan dengan perintah di atas. Server berjalan di `http://local
 | `DB_SCHEMA` | Schema, default `public` |
 | `REDIS_ADDR` | Alamat Redis, default `localhost:6379` |
 | `JWT_SECRET` | Minimal 32 karakter; dipakai access token dan HMAC OTP |
-| `REFRESH_COOKIE_NAME` | Nama cookie refresh, default `hsi_refresh` |
+| `JWT_ISSUER`, `JWT_AUDIENCE` | Klaim `iss`/`aud` token, default `kelana` dan `kelana-api` |
+| `BRAND_NAME` | Nama merek untuk deskripsi pembayaran, default `Kelana` |
+| `BRAND_CODE_PREFIX` | Prefix kode reservasi, default `KLN` |
+| `BRAND_MERCHANT_NAME` | Nama merchant QRIS mock, default `KELANA` |
+| `REFRESH_COOKIE_NAME` | Nama cookie refresh, default `kelana_refresh` |
 | `CORS_ORIGINS` | Allowlist origin, pisahkan dengan koma; produksi wajib eksplisit dan tanpa `*` |
 | `MAX_REQUEST_BODY_BYTES` | Batas body global, default `8388608` (8 MB); upload dokumen tetap dibatasi 3 MB |
 | `MAIL_DRIVER` | `mock` (kode OTP ditulis ke log server) |

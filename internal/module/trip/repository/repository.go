@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/trip/model/domain"
-	"github.com/khorihutama/hsi-go-api/internal/module/trip/model/entity"
-	"github.com/khorihutama/hsi-go-api/internal/module/trip/model/query"
+	"github.com/khorihutama/kelana-api/internal/module/trip/model/domain"
+	"github.com/khorihutama/kelana-api/internal/module/trip/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/trip/model/query"
 )
 
 type Repository interface {

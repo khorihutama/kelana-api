@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/auth/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/auth/model/entity"
 )
 
 type gormRepository struct {

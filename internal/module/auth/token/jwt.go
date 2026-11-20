@@ -17,12 +17,14 @@ type Claims struct {
 }
 
 type Manager struct {
-	secret []byte
-	ttl    time.Duration
+	secret   []byte
+	ttl      time.Duration
+	issuer   string
+	audience string
 }
 
-func New(secret string, ttl time.Duration) *Manager {
-	return &Manager{secret: []byte(secret), ttl: ttl}
+func New(secret string, ttl time.Duration, issuer, audience string) *Manager {
+	return &Manager{secret: []byte(secret), ttl: ttl, issuer: issuer, audience: audience}
 }
 
 func (m *Manager) Generate(userID uuid.UUID, role string, sessionID uuid.UUID) (string, int, error) {
@@ -33,8 +35,8 @@ func (m *Manager) Generate(userID uuid.UUID, role string, sessionID uuid.UUID) (
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
 			ID:        uuid.NewString(),
-			Issuer:    "hsi-go",
-			Audience:  jwt.ClaimStrings{"hsi-go-api"},
+			Issuer:    m.issuer,
+			Audience:  jwt.ClaimStrings{m.audience},
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(m.ttl)),
 		},
@@ -56,8 +58,8 @@ func (m *Manager) Parse(raw string) (*Claims, error) {
 			}
 			return m.secret, nil
 		},
-		jwt.WithIssuer("hsi-go"),
-		jwt.WithAudience("hsi-go-api"),
+		jwt.WithIssuer(m.issuer),
+		jwt.WithAudience(m.audience),
 		jwt.WithExpirationRequired(),
 	)
 	if err != nil {

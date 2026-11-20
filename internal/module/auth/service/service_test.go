@@ -9,10 +9,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/module/auth/model/dto"
-	"github.com/khorihutama/hsi-go-api/internal/module/auth/model/entity"
-	"github.com/khorihutama/hsi-go-api/internal/module/auth/token"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/module/auth/model/dto"
+	"github.com/khorihutama/kelana-api/internal/module/auth/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/auth/token"
 )
 
 type fakeRepo struct {
@@ -139,7 +139,7 @@ func newTestService() (*Service, *fakeRepo, *captureMailer) {
 	repo := newFakeRepo()
 	mail := &captureMailer{}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := New(repo, token.New("01234567890123456789012345678901", 15*time.Minute), mail, Config{
+	svc := New(repo, token.New("01234567890123456789012345678901", 15*time.Minute, "kelana", "kelana-api"), mail, Config{
 		JWTSecret:       "01234567890123456789012345678901",
 		RefreshTokenTTL: 30 * 24 * time.Hour,
 		OTPExpiry:       10 * time.Minute,

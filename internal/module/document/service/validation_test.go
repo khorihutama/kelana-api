@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
 )
 
 func pdfPayload(size int) []byte {

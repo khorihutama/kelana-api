@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/port"
+	"github.com/khorihutama/kelana-api/internal/module/payment/port"
 )
 
 func signedHeader(secret string, body []byte) http.Header {
@@ -23,7 +23,7 @@ func signedHeader(secret string, body []byte) http.Header {
 }
 
 func TestMockCreateCharge(t *testing.T) {
-	provider := NewMock("test-secret-123456")
+	provider := NewMock("test-secret-123456", "KELANA")
 	ctx := context.Background()
 	req := port.ChargeRequest{
 		PaymentID:     uuid.Must(uuid.NewV7()),
@@ -60,7 +60,7 @@ func TestMockCreateCharge(t *testing.T) {
 
 func TestMockParseWebhookSignature(t *testing.T) {
 	secret := "test-secret-123456"
-	provider := NewMock(secret)
+	provider := NewMock(secret, "KELANA")
 	paymentID := uuid.Must(uuid.NewV7())
 	body := []byte(`{"event_id":"evt-1","payment_id":"` + paymentID.String() + `","status":"PAID","amount_idr":5900000}`)
 
@@ -91,14 +91,14 @@ func TestMockParseWebhookSignature(t *testing.T) {
 }
 
 func TestMockRefundNotSupported(t *testing.T) {
-	provider := NewMock("test-secret-123456")
+	provider := NewMock("test-secret-123456", "KELANA")
 	if err := provider.Refund(context.Background(), port.RefundRequest{}); err != port.ErrNotSupported {
 		t.Fatalf("Refund err = %v", err)
 	}
 }
 
 func TestMockMapStatus(t *testing.T) {
-	provider := NewMock("x")
+	provider := NewMock("x", "KELANA")
 	cases := map[string]port.Status{
 		"paid":       port.StatusPaid,
 		"settlement": port.StatusPaid,

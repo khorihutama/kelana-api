@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"net/http"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/port"
+	"github.com/khorihutama/kelana-api/internal/module/payment/port"
 )
 
 // Midtrans is a skeleton adapter. It is intentionally not registered in DI

@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/model/entity"
+	"github.com/khorihutama/kelana-api/internal/module/payment/model/entity"
 )
 
 type gormRepository struct {

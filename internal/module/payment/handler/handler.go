@@ -8,12 +8,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/khorihutama/hsi-go-api/internal/api/middleware"
-	"github.com/khorihutama/hsi-go-api/internal/common/dto"
-	"github.com/khorihutama/hsi-go-api/internal/common/errs"
-	"github.com/khorihutama/hsi-go-api/internal/infra/ratelimit"
-	paymentdto "github.com/khorihutama/hsi-go-api/internal/module/payment/model/dto"
-	"github.com/khorihutama/hsi-go-api/internal/module/payment/service"
+	"github.com/khorihutama/kelana-api/internal/api/middleware"
+	"github.com/khorihutama/kelana-api/internal/common/dto"
+	"github.com/khorihutama/kelana-api/internal/common/errs"
+	"github.com/khorihutama/kelana-api/internal/infra/ratelimit"
+	paymentdto "github.com/khorihutama/kelana-api/internal/module/payment/model/dto"
+	"github.com/khorihutama/kelana-api/internal/module/payment/service"
 )
 
 const maxWebhookBytes int64 = 1 << 20

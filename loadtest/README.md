@@ -1,4 +1,4 @@
-# Load test HSI GO API
+# Load test Kelana API
 
 Skrip k6 untuk discovery read-heavy, login, dan lock/cancel.
 

@@ -179,4 +179,4 @@ Backend lengkap: autentikasi OTP, discovery, booking + seat lock, dokumen terenk
 
 ## Lisensi
 
-Private project. Belum ada lisensi publik.
+Proyek personal untuk portofolio. Belum ada lisensi publik; semua hak dipertahankan.

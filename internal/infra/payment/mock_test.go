@@ -51,6 +51,9 @@ func TestMockCreateCharge(t *testing.T) {
 	if err != nil || qr.QRString == "" {
 		t.Fatalf("QRIS charge = %+v, %v", qr, err)
 	}
+	if !strings.Contains(qr.QRString, "5906KELANA") {
+		t.Fatalf("QRIS merchant is not KELANA: %q", qr.QRString)
+	}
 	req.Method = port.MethodCard
 	card, err := provider.CreateCharge(ctx, req)
 	if err != nil || card.VANumber != "" || card.QRString != "" {
